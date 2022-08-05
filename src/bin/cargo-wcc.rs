@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
 use weighted_code_coverage::error::*;
@@ -44,14 +44,14 @@ fn run_functions(args: &Args) -> Result<()> {
             &args.path_file,
             &args.path_json,
             metric_to_use,
-            args.n_threads.max(1),
+            args.n_threads.max(2),
             thresholds,
         )?,
         JsonFormat::Coveralls => get_functions_metrics_concurrent(
             &args.path_file,
             &args.path_json,
             metric_to_use,
-            args.n_threads.max(1),
+            args.n_threads.max(2),
             thresholds,
         )?,
     };
@@ -79,14 +79,14 @@ fn run_files(args: &Args) -> Result<()> {
             &args.path_file,
             &args.path_json,
             metric_to_use,
-            args.n_threads.max(1),
+            args.n_threads.max(2),
             thresholds,
         )?,
         JsonFormat::Coveralls => get_metrics_concurrent(
             &args.path_file,
             &args.path_json,
             metric_to_use,
-            args.n_threads.max(1),
+            args.n_threads.max(2),
             thresholds,
         )?,
     };
@@ -142,8 +142,37 @@ struct Args {
     mode: Mode,
 }
 
+#[derive(Subcommand)]
+enum Cmd {
+    /// Weighted Code Coverage cargo subcommand
+    #[clap(name = "wcc")]
+    Wcc(Args),
+}
+
+/// Weighted Code Coverage cargo applet
+#[derive(Parser)]
+struct Cli {
+    #[clap(subcommand)]
+    args: Cmd,
+}
+
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let Cli {
+        args: Cmd::Wcc(args),
+    } = Cli::parse();
+    //let args = Args::parse();
+    /*let mut cmd = cargo_metadata::MetadataCommand::new();
+    if let Some(ref manifest_path) = args.manifest_path {
+        cmd.manifest_path(manifest_path);
+    }
+
+    let metadata = cmd.exec()?;
+    let source_path = metadata.workspace_packages()[0]
+        .manifest_path
+        .parent()
+        .unwrap()
+        .join("src")
+        .into_std_path_buf();*/
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| {
             if args.verbose {

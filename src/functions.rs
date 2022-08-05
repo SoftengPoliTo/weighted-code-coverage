@@ -84,7 +84,7 @@ impl RootMetrics {
 pub struct FunctionMetrics {
     pub metrics: Metrics,
     pub function_name: String,
-    pub file_path: String,
+    pub function_path: String,
     pub start_line: usize,
     pub end_line: usize,
 }
@@ -92,14 +92,14 @@ impl FunctionMetrics {
     pub fn new(
         metrics: Metrics,
         function_name: String,
-        file_path: String,
+        function_path: String,
         start_line: usize,
         end_line: usize,
     ) -> Self {
         Self {
             metrics,
             function_name,
-            file_path,
+            function_path,
             start_line,
             end_line,
         }
@@ -226,7 +226,7 @@ fn consumer(
             let mut functions = Vec::<FunctionMetrics>::new();
             spaces.iter().try_for_each(|el| -> Result<()> {
                 let space = el.0;
-                let file_path = el.1.to_string();
+                let function_path = el.1.to_string();
                 let (m, _): (Metrics, (f64, f64)) =
                     Tree::get_metrics_from_space(space, &arr, metric, None, &thresholds)?;
                 let function_name = format!(
@@ -238,7 +238,7 @@ fn consumer(
                 functions.push(FunctionMetrics::new(
                     m,
                     function_name,
-                    file_path,
+                    function_path,
                     space.start_line,
                     space.end_line,
                 ));
@@ -493,7 +493,7 @@ fn consumer_covdir(
             let mut functions = Vec::<FunctionMetrics>::new();
             spaces.iter().try_for_each(|el| -> Result<()> {
                 let space = el.0;
-                let file_path = el.1.to_string();
+                let function_path = el.1.to_string();
                 let function_name = format!(
                     "{} ({}, {})",
                     space.name.as_ref().ok_or(Error::ConversionError())?,
@@ -505,7 +505,7 @@ fn consumer_covdir(
                 functions.push(FunctionMetrics::new(
                     m,
                     function_name,
-                    file_path,
+                    function_path,
                     space.start_line,
                     space.end_line,
                 ));

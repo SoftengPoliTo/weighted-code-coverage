@@ -235,7 +235,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
                     f.metrics.crap,
                     f.metrics.skunk,
                     f.metrics.is_complex,
-                    f.file_path
+                    f.function_path
                 );
             });
         });
@@ -306,7 +306,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
                     &format!("{:.3}", m.metrics.skunk),
                     &format!("{}", false),
                     &format!("{}", m.metrics.is_complex),
-                    &m.file_path,
+                    &m.function_path,
                 ])?;
                 Ok(())
             })?;
@@ -341,7 +341,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
                 &format!("{:.3}", m.metrics.skunk),
                 &format!("{}", false),
                 &format!("{}", m.metrics.is_complex),
-                &m.file_path,
+                &m.function_path,
             ])?;
             Ok(())
         })?;
