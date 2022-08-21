@@ -13,8 +13,8 @@ use tracing::debug;
 use crate::error::*;
 use crate::files::*;
 use crate::metrics::crap::*;
-use crate::metrics::sifis::*;
 use crate::metrics::skunk::*;
+use crate::metrics::wcc::*;
 
 const COMPLEXITY_FACTOR: f64 = 25.0;
 
@@ -55,10 +55,10 @@ impl JsonFormat {
 /// Mode
 #[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Mode {
-    /// Cyclomatic metric.
+    /// Files Mode
     #[arg_enum(name = "files")]
     Files,
-    /// Cognitive metric.
+    /// Functions Mode
     #[arg_enum(name = "functions")]
     Functions,
 }
@@ -66,6 +66,29 @@ impl Mode {
     /// Default output format.
     pub const fn default() -> &'static str {
         "files"
+    }
+}
+
+/// Sort
+#[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Sort {
+    /// Wcc Plain
+    #[arg_enum(name = "wcc_plain")]
+    WccPlain,
+    /// Wcc Plain quantized
+    #[arg_enum(name = "wcc_q")]
+    WccQuantized,
+    /// Crap
+    #[arg_enum(name = "crap")]
+    Crap,
+    /// Skunk
+    #[arg_enum(name = "skunk")]
+    Skunk,
+}
+impl Sort {
+    /// Default output format.
+    pub const fn default() -> &'static str {
+        "wcc_plain"
     }
 }
 
@@ -89,11 +112,11 @@ impl Visit for Tree {
         thresholds: &[f64],
     ) -> Result<(Metrics, (f64, f64))> {
         let covdir = coverage.is_some();
-        let (sifis_plain, sp_sum) = sifis_plain_function(space, covs, metric, covdir)?;
-        let (sifis_quantized, sq_sum) = sifis_quantized_function(space, covs, metric, covdir)?;
+        let (wcc_plain, sp_sum) = wcc_plain_function(space, covs, metric, covdir)?;
+        let (wcc_quantized, sq_sum) = wcc_quantized_function(space, covs, metric, covdir)?;
         let crap = crap_function(space, covs, metric, coverage)?;
         let skunk = skunk_nosmells_function(space, covs, metric, coverage)?;
-        let is_complex = check_complexity(sifis_plain, sifis_quantized, crap, skunk, thresholds);
+        let is_complex = check_complexity(wcc_plain, wcc_quantized, crap, skunk, thresholds);
         let coverage = if let Some(coverage) = coverage {
             coverage
         } else {
@@ -105,8 +128,8 @@ impl Visit for Tree {
             }
         };
         let m = Metrics::new(
-            sifis_plain,
-            sifis_quantized,
+            wcc_plain,
+            wcc_quantized,
             crap,
             skunk,
             is_complex,
@@ -260,29 +283,6 @@ pub(crate) fn read_json_covdir(file: String, map_prefix: &str) -> Result<HashMap
     Ok(res)
 }
 
-// Get the code coverage in percentage
-pub(crate) fn get_coverage_perc(covs: &[Value]) -> Result<f64> {
-    // Count the number of covered lines
-    let (tot_lines, covered_lines) =
-        covs.iter()
-            .try_fold((0., 0.), |acc, line| -> Result<(f64, f64)> {
-                let is_null = line.is_null();
-                let sum;
-                if !is_null {
-                    let cov = line.as_u64().ok_or(Error::ConversionError())?;
-                    if cov > 0 {
-                        sum = (acc.0 + 1., acc.1 + 1.);
-                    } else {
-                        sum = (acc.0 + 1., acc.1);
-                    }
-                } else {
-                    sum = (acc.0, acc.1);
-                }
-                Ok(sum)
-            })?;
-    Ok(covered_lines / tot_lines)
-}
-
 // Get the code coverage in percentage between start and end
 pub(crate) fn get_covered_lines(covs: &[Value], start: usize, end: usize) -> Result<(f64, f64)> {
     // Count the number of covered lines
@@ -345,14 +345,14 @@ pub(crate) fn get_spaces(root: &FuncSpace) -> Result<Vec<(&FuncSpace, String)>> 
 // Return true if al least one metric exceed a threshold , false otherwise
 #[inline(always)]
 pub(crate) fn check_complexity(
-    sifis_plain: f64,
-    sifis_quantized: f64,
+    wcc_plain: f64,
+    wcc_quantized: f64,
     crap: f64,
     skunk: f64,
     thresholds: &[f64],
 ) -> bool {
-    sifis_plain > thresholds[0]
-        || sifis_quantized > thresholds[1]
+    wcc_plain > thresholds[0]
+        || wcc_quantized > thresholds[1]
         || crap > thresholds[2]
         || skunk > thresholds[3]
 }
@@ -361,30 +361,29 @@ pub(crate) fn check_complexity(
 pub(crate) fn get_cumulative_values(metrics: &Vec<Metrics>) -> (Metrics, Metrics, Metrics) {
     let mut min = Metrics::min();
     let mut max = Metrics::default();
-    let (sifis, sifisq, crap, skunk, cov) =
-        metrics.iter().fold((0.0, 0.0, 0.0, 0.0, 0.0), |acc, m| {
-            max.sifis_plain = max.sifis_plain.max(m.sifis_plain);
-            max.sifis_quantized = max.sifis_quantized.max(m.sifis_quantized);
-            max.crap = max.crap.max(m.crap);
-            max.skunk = max.skunk.max(m.skunk);
-            min.sifis_plain = min.sifis_plain.min(m.sifis_plain);
-            min.sifis_quantized = min.sifis_quantized.min(m.sifis_quantized);
-            min.crap = min.crap.min(m.crap);
-            min.skunk = min.skunk.min(m.skunk);
-            (
-                acc.0 + m.sifis_plain,
-                acc.1 + m.sifis_quantized,
-                acc.2 + m.crap,
-                acc.3 + m.skunk,
-                acc.4 + m.coverage,
-            )
-        });
+    let (wcc, wccq, crap, skunk, cov) = metrics.iter().fold((0.0, 0.0, 0.0, 0.0, 0.0), |acc, m| {
+        max.wcc_plain = max.wcc_plain.max(m.wcc_plain);
+        max.wcc_quantized = max.wcc_quantized.max(m.wcc_quantized);
+        max.crap = max.crap.max(m.crap);
+        max.skunk = max.skunk.max(m.skunk);
+        min.wcc_plain = min.wcc_plain.min(m.wcc_plain);
+        min.wcc_quantized = min.wcc_quantized.min(m.wcc_quantized);
+        min.crap = min.crap.min(m.crap);
+        min.skunk = min.skunk.min(m.skunk);
+        (
+            acc.0 + m.wcc_plain,
+            acc.1 + m.wcc_quantized,
+            acc.2 + m.crap,
+            acc.3 + m.skunk,
+            acc.4 + m.coverage,
+        )
+    });
     let l = metrics.len() as f64;
-    let avg = Metrics::new(sifis / l, sifisq / l, crap / l, skunk / l, false, cov);
+    let avg = Metrics::new(wcc / l, wccq / l, crap / l, skunk / l, false, cov);
     (avg, max, min)
 }
 
-// Calculate SIFIS PLAIN , SIFIS QUANTIZED, CRA and SKUNKSCORE for the entire project
+// Calculate WCC PLAIN , WCC QUANTIZED, CRA and SKUNKSCORE for the entire project
 // Using the sum values computed before
 pub(crate) fn get_project_metrics(
     values: JobComposer,
@@ -398,8 +397,8 @@ pub(crate) fn get_project_metrics(
         0.0
     };
     let mut m = Metrics::default();
-    m = m.sifis_plain(values.sifis_plain_sum / values.ploc_sum);
-    m = m.sifis_quantized(values.sifis_quantized_sum / values.ploc_sum);
+    m = m.wcc_plain(values.wcc_plain_sum / values.ploc_sum);
+    m = m.wcc_quantized(values.wcc_quantized_sum / values.ploc_sum);
     m = m.crap(
         ((values.comp_sum.powf(2.)) * ((1.0 - project_coverage / 100.).powf(3.))) + values.comp_sum,
     );

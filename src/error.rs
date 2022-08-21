@@ -31,9 +31,7 @@ pub enum Error {
     PathConversionError(),
     #[error("Error while locking mutex")]
     MutexError(),
-    #[error(
-        "Thresholds must be only 4 in this order -t SIFIS_PLAIN, SIFIS_QUANTIZED, CRAP, SKUNK"
-    )]
+    #[error("Thresholds must be only 4 in this order -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK")]
     ThresholdsError(),
     #[error("Error while sending job via sender")]
     SenderError(),

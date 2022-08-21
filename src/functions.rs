@@ -252,8 +252,8 @@ fn consumer(
             composer_output.covered_lines += covered_lines;
             composer_output.total_lines += tot_lines;
             composer_output.ploc_sum += ploc;
-            composer_output.sifis_plain_sum += sp_sum;
-            composer_output.sifis_quantized_sum += sq_sum;
+            composer_output.wcc_plain_sum += sp_sum;
+            composer_output.wcc_quantized_sum += sq_sum;
             composer_output.comp_sum += comp;
             res.push(RootMetrics::new(
                 m,
@@ -292,6 +292,7 @@ pub fn get_functions_metrics_concurrent<A: AsRef<Path>, B: AsRef<Path>>(
     metric: Complexity,
     n_threads: usize,
     thresholds: &[f64],
+    sort_by: Sort,
 ) -> Result<Output> {
     if thresholds.len() != 4 {
         return Err(Error::ThresholdsError());
@@ -380,12 +381,17 @@ pub fn get_functions_metrics_concurrent<A: AsRef<Path>, B: AsRef<Path>>(
     files_ignored.sort();
     res.sort_by(|a, b| a.file_name.cmp(&b.file_name));
     // Get AVG MIN MAX and complex files
-    let complex_files = res
+    let mut complex_functions = res
         .iter()
         .flat_map(|m| m.functions.clone())
         .filter(|m| m.metrics.is_complex)
         .collect::<Vec<FunctionMetrics>>();
-    println!("{:?}", complex_files);
+    complex_functions.sort_by(|a, b| match sort_by {
+        Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
+        Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
+        Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
+        Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
+    });
     let m = res
         .iter()
         .map(|metric| metric.metrics)
@@ -398,7 +404,7 @@ pub fn get_functions_metrics_concurrent<A: AsRef<Path>, B: AsRef<Path>>(
     Ok((
         (*res).clone(),
         (*files_ignored).clone(),
-        complex_files,
+        complex_functions,
         f64::round(project_coverage * 100.) / 100.,
     ))
 }
@@ -517,8 +523,8 @@ fn consumer_covdir(
             // Upgrade all the global variables and add metrics to the result and complex_files
             let mut res = res.lock()?;
             composer_output.ploc_sum += ploc;
-            composer_output.sifis_plain_sum += sp_sum;
-            composer_output.sifis_quantized_sum += sq_sum;
+            composer_output.wcc_plain_sum += sp_sum;
+            composer_output.wcc_quantized_sum += sq_sum;
             composer_output.comp_sum += comp;
             res.push(RootMetrics::new(
                 m,
@@ -543,6 +549,7 @@ pub fn get_functions_metrics_concurrent_covdir<A: AsRef<Path>, B: AsRef<Path>>(
     metric: Complexity,
     n_threads: usize,
     thresholds: &[f64],
+    sort_by: Sort,
 ) -> Result<Output> {
     if thresholds.len() != 4 {
         return Err(Error::ThresholdsError());
@@ -634,11 +641,17 @@ pub fn get_functions_metrics_concurrent_covdir<A: AsRef<Path>, B: AsRef<Path>>(
     files_ignored.sort();
     res.sort_by(|a, b| a.file_name.cmp(&b.file_name));
     // Get AVG MIN MAX and complex files
-    let complex_files: Vec<FunctionMetrics> = res
+    let mut complex_functions = res
         .iter()
         .flat_map(|m| m.functions.clone())
         .filter(|m| m.metrics.is_complex)
         .collect::<Vec<FunctionMetrics>>();
+    complex_functions.sort_by(|a, b| match sort_by {
+        Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
+        Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
+        Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
+        Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
+    });
     let m = res
         .iter()
         .map(|metric| metric.metrics)
@@ -651,7 +664,7 @@ pub fn get_functions_metrics_concurrent_covdir<A: AsRef<Path>, B: AsRef<Path>>(
     Ok((
         (*res).clone(),
         (*files_ignored).clone(),
-        complex_files,
+        complex_functions,
         f64::round(project_coverage * 100.) / 100.,
     ))
 }
@@ -678,6 +691,7 @@ mod tests {
             Complexity::Cyclomatic,
             8,
             &[30., 1.5, 35., 30.],
+            Sort::WccPlain,
         )
         .unwrap();
         let ma = &metrics[7].metrics;
@@ -689,35 +703,35 @@ mod tests {
 
         assert_eq!(files_ignored.len(), 1);
         assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.sifis_plain, 0.));
-        assert!(compare_float(ma.sifis_quantized, 0.));
+        assert!(compare_float(ma.wcc_plain, 0.));
+        assert!(compare_float(ma.wcc_quantized, 0.));
         assert!(compare_float(ma.crap, 552.));
         assert!(compare_float(ma.skunk, 92.));
-        assert!(compare_float(h.sifis_plain, 1.5));
-        assert!(compare_float(h.sifis_quantized, 0.5));
+        assert!(compare_float(h.wcc_plain, 1.5));
+        assert!(compare_float(h.wcc_quantized, 0.5));
         assert!(compare_float(h.crap, 3.));
         assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.sifis_plain, 79.21478060046189));
-        assert!(compare_float(app_root.sifis_quantized, 0.792147806004619));
+        assert!(compare_float(app_root.wcc_plain, 79.21478060046189));
+        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
         assert!(compare_float(app_root.crap, 123.97408556537728));
         assert!(compare_float(app_root.skunk, 53.53535353535352));
-        assert!(compare_float(cont_root.sifis_plain, 24.31578947368421));
-        assert!(compare_float(cont_root.sifis_quantized, 0.7368421052631579));
+        assert!(compare_float(cont_root.wcc_plain, 24.31578947368421));
+        assert!(compare_float(cont_root.wcc_quantized, 0.7368421052631579));
         assert!(compare_float(cont_root.crap, 33.468144844401756));
         assert!(compare_float(cont_root.skunk, 9.9622641509434));
         assert!(compare_float(
-            app_app_new_only_test.sifis_plain,
+            app_app_new_only_test.wcc_plain,
             1.1111111111111112
         ));
         assert!(compare_float(
-            app_app_new_only_test.sifis_quantized,
+            app_app_new_only_test.wcc_quantized,
             1.1111111111111112
         ));
         assert!(compare_float(app_app_new_only_test.crap, 1.0));
         assert!(compare_float(app_app_new_only_test.skunk, 0.000));
-        assert!(compare_float(cont_bool_flag.sifis_plain, 2.142857142857143));
+        assert!(compare_float(cont_bool_flag.wcc_plain, 2.142857142857143));
         assert!(compare_float(
-            cont_bool_flag.sifis_quantized,
+            cont_bool_flag.wcc_quantized,
             0.7142857142857143
         ));
         assert!(compare_float(cont_bool_flag.crap, 3.0416666666666665));
@@ -735,6 +749,7 @@ mod tests {
             Complexity::Cognitive,
             8,
             &[30., 1.5, 35., 30.],
+            Sort::WccPlain,
         )
         .unwrap();
         let ma = &metrics[7].metrics;
@@ -746,35 +761,32 @@ mod tests {
 
         assert_eq!(files_ignored.len(), 1);
         assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.sifis_plain, 0.));
-        assert!(compare_float(ma.sifis_quantized, 0.));
+        assert!(compare_float(ma.wcc_plain, 0.));
+        assert!(compare_float(ma.wcc_quantized, 0.));
         assert!(compare_float(ma.crap, 72.));
         assert!(compare_float(ma.skunk, 32.));
-        assert!(compare_float(h.sifis_plain, 0.));
-        assert!(compare_float(h.sifis_quantized, 0.5));
+        assert!(compare_float(h.wcc_plain, 0.));
+        assert!(compare_float(h.wcc_quantized, 0.5));
         assert!(compare_float(h.crap, 0.));
         assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.sifis_plain, 66.540415704388));
-        assert!(compare_float(app_root.sifis_quantized, 0.792147806004619));
+        assert!(compare_float(app_root.wcc_plain, 66.540415704388));
+        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
         assert!(compare_float(app_root.crap, 100.91611477493021));
         assert!(compare_float(app_root.skunk, 44.969696969696955));
-        assert!(compare_float(cont_root.sifis_plain, 18.42105263157895));
-        assert!(compare_float(cont_root.sifis_quantized, 0.8872180451127819));
+        assert!(compare_float(cont_root.wcc_plain, 18.42105263157895));
+        assert!(compare_float(cont_root.wcc_quantized, 0.8872180451127819));
         assert!(compare_float(cont_root.crap, 25.268678170570336));
         assert!(compare_float(cont_root.skunk, 7.547169811320757));
-        assert!(compare_float(app_app_new_only_test.sifis_plain, 0.0));
+        assert!(compare_float(app_app_new_only_test.wcc_plain, 0.0));
         assert!(compare_float(
-            app_app_new_only_test.sifis_quantized,
+            app_app_new_only_test.wcc_quantized,
             1.1111111111111112
         ));
         assert!(compare_float(app_app_new_only_test.crap, 0.0));
         assert!(compare_float(app_app_new_only_test.skunk, 0.000));
+        assert!(compare_float(cont_bool_flag.wcc_plain, 0.7142857142857143));
         assert!(compare_float(
-            cont_bool_flag.sifis_plain,
-            0.7142857142857143
-        ));
-        assert!(compare_float(
-            cont_bool_flag.sifis_quantized,
+            cont_bool_flag.wcc_quantized,
             0.7142857142857143
         ));
         assert!(compare_float(cont_bool_flag.crap, 1.0046296296296295));
@@ -792,6 +804,7 @@ mod tests {
             Complexity::Cyclomatic,
             8,
             &[30., 1.5, 35., 30.],
+            Sort::WccPlain,
         )
         .unwrap();
         let ma = &metrics[7].metrics;
@@ -803,28 +816,28 @@ mod tests {
 
         assert_eq!(files_ignored.len(), 1);
         assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.sifis_plain, 0.));
-        assert!(compare_float(ma.sifis_quantized, 0.));
+        assert!(compare_float(ma.wcc_plain, 0.));
+        assert!(compare_float(ma.wcc_quantized, 0.));
         assert!(compare_float(ma.crap, 552.));
         assert!(compare_float(ma.skunk, 92.));
-        assert!(compare_float(h.sifis_plain, 1.5));
-        assert!(compare_float(h.sifis_quantized, 0.5));
+        assert!(compare_float(h.wcc_plain, 1.5));
+        assert!(compare_float(h.wcc_quantized, 0.5));
         assert!(compare_float(h.crap, 3.));
         assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.sifis_plain, 79.21478060046189));
-        assert!(compare_float(app_root.sifis_quantized, 0.792147806004619));
+        assert!(compare_float(app_root.wcc_plain, 79.21478060046189));
+        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
         assert!(compare_float(app_root.crap, 123.95346471999996));
         assert!(compare_float(app_root.skunk, 53.51999999999998));
-        assert!(compare_float(cont_root.sifis_plain, 24.31578947368421));
-        assert!(compare_float(cont_root.sifis_quantized, 0.7368421052631579));
+        assert!(compare_float(cont_root.wcc_plain, 24.31578947368421));
+        assert!(compare_float(cont_root.wcc_quantized, 0.7368421052631579));
         assert!(compare_float(cont_root.crap, 33.468671704875));
         assert!(compare_float(cont_root.skunk, 9.965999999999998));
         assert!(compare_float(
-            app_app_new_only_test.sifis_plain,
+            app_app_new_only_test.wcc_plain,
             1.1111111111111112
         ));
         assert!(compare_float(
-            app_app_new_only_test.sifis_quantized,
+            app_app_new_only_test.wcc_quantized,
             1.1111111111111112
         ));
         assert!(compare_float(app_app_new_only_test.crap, 1.002395346472));
@@ -832,9 +845,9 @@ mod tests {
             app_app_new_only_test.skunk,
             0.5351999999999998
         ));
-        assert!(compare_float(cont_bool_flag.sifis_plain, 2.142857142857143));
+        assert!(compare_float(cont_bool_flag.wcc_plain, 2.142857142857143));
         assert!(compare_float(
-            cont_bool_flag.sifis_quantized,
+            cont_bool_flag.wcc_quantized,
             0.7142857142857143
         ));
         assert!(compare_float(cont_bool_flag.crap, 3.003873319875));
@@ -852,6 +865,7 @@ mod tests {
             Complexity::Cognitive,
             8,
             &[30., 1.5, 35., 30.],
+            Sort::WccPlain,
         )
         .unwrap();
         let ma = &metrics[7].metrics;
@@ -861,42 +875,34 @@ mod tests {
         let cont_root = &metrics[2].metrics;
         let cont_bool_flag = &metrics[2].functions[3].metrics;
 
-        println!("{:?}", app_root);
-        println!("{:?}", cont_root);
-        println!("{:?}", app_app_new_only_test);
-        println!("{:?}", cont_bool_flag);
-        println!("{:?}", &metrics[0].functions[0]);
         assert_eq!(files_ignored.len(), 1);
         assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.sifis_plain, 0.));
-        assert!(compare_float(ma.sifis_quantized, 0.));
+        assert!(compare_float(ma.wcc_plain, 0.));
+        assert!(compare_float(ma.wcc_quantized, 0.));
         assert!(compare_float(ma.crap, 72.));
         assert!(compare_float(ma.skunk, 32.));
-        assert!(compare_float(h.sifis_plain, 0.));
-        assert!(compare_float(h.sifis_quantized, 0.5));
+        assert!(compare_float(h.wcc_plain, 0.));
+        assert!(compare_float(h.wcc_quantized, 0.5));
         assert!(compare_float(h.crap, 0.));
         assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.sifis_plain, 66.540415704388));
-        assert!(compare_float(app_root.sifis_quantized, 0.792147806004619));
+        assert!(compare_float(app_root.wcc_plain, 66.540415704388));
+        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
         assert!(compare_float(app_root.crap, 100.90156470643197));
         assert!(compare_float(app_root.skunk, 44.95679999999998));
-        assert!(compare_float(cont_root.sifis_plain, 18.42105263157895));
-        assert!(compare_float(cont_root.sifis_quantized, 0.8872180451127819));
+        assert!(compare_float(cont_root.wcc_plain, 18.42105263157895));
+        assert!(compare_float(cont_root.wcc_quantized, 0.8872180451127819));
         assert!(compare_float(cont_root.crap, 25.268980546875));
         assert!(compare_float(cont_root.skunk, 7.549999999999997));
-        assert!(compare_float(app_app_new_only_test.sifis_plain, 0.0));
+        assert!(compare_float(app_app_new_only_test.wcc_plain, 0.0));
         assert!(compare_float(
-            app_app_new_only_test.sifis_quantized,
+            app_app_new_only_test.wcc_quantized,
             1.1111111111111112
         ));
         assert!(compare_float(app_app_new_only_test.crap, 0.0));
         assert!(compare_float(app_app_new_only_test.skunk, 0.000));
+        assert!(compare_float(cont_bool_flag.wcc_plain, 0.7142857142857143));
         assert!(compare_float(
-            cont_bool_flag.sifis_plain,
-            0.7142857142857143
-        ));
-        assert!(compare_float(
-            cont_bool_flag.sifis_quantized,
+            cont_bool_flag.wcc_quantized,
             0.7142857142857143
         ));
         assert!(compare_float(cont_bool_flag.crap, 1.000430368875));

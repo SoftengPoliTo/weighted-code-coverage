@@ -106,6 +106,18 @@ Example:
 weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -n 16
 ```
 
+### Sort By
+To choose which metric to use for sorting the complex files/functions.
+Use the *sort_by* `s` option. 
+
+It supports only these values: *wcc_plain*, *wcc_quantized*, *crap*, *skunk*.
+If not specified the default value is *wcc_plain*.
+
+Example:
+```
+weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -s crap
+```
+
 ## Steps to install and run weighted-code-coverage
 
 - grcov needs a rust nightly version in order to work, so switch to it with: ``rustup default nightly``

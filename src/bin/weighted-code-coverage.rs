@@ -7,16 +7,14 @@ use weighted_code_coverage::error::*;
 use weighted_code_coverage::files::*;
 use weighted_code_coverage::functions::*;
 use weighted_code_coverage::output::*;
-use weighted_code_coverage::utility::Complexity;
-use weighted_code_coverage::utility::JsonFormat;
-use weighted_code_coverage::utility::Mode;
+use weighted_code_coverage::utility::{Complexity, JsonFormat, Mode, Sort};
 
 const fn thresholds_long_help() -> &'static str {
-    "Set four  thresholds in this order: -t SIFIS_PLAIN, SIFIS_QUANTIZED, CRAP, SKUNK\n 
+    "Set four  thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n 
     All the values must be floats\n
     All Thresholds has 0 as minimum value, thus no threshold at all.\n
-    SIFIS PLAIN has a max threshold of COMP*SLOC/PLOC\n
-    SIFIS QUANTIZED has a max threshold of 2*SLOC/PLOC\n
+    WCC PLAIN has a max threshold of COMP*SLOC/PLOC\n
+    WCC QUANTIZED has a max threshold of 2*SLOC/PLOC\n
     CRAP has a max threshold of COMP^2 +COMP\n
     SKUNK has a max threshold of COMP/25\n"
 }
@@ -39,6 +37,7 @@ impl std::str::FromStr for Thresholds {
 fn run_functions(args: &Args) -> Result<()> {
     let metric_to_use = args.complexity;
     let thresholds = &args.thresholds.0;
+    let sort_by = args.sort;
     let (metrics, files_ignored, complex_files, project_coverage) = match args.json_format {
         JsonFormat::Covdir => get_functions_metrics_concurrent_covdir(
             &args.path_file,
@@ -46,6 +45,7 @@ fn run_functions(args: &Args) -> Result<()> {
             metric_to_use,
             args.n_threads.max(1),
             thresholds,
+            sort_by,
         )?,
         JsonFormat::Coveralls => get_functions_metrics_concurrent(
             &args.path_file,
@@ -53,10 +53,11 @@ fn run_functions(args: &Args) -> Result<()> {
             metric_to_use,
             args.n_threads.max(1),
             thresholds,
+            sort_by,
         )?,
     };
     if let Some(csv) = &args.path_csv {
-        print_metrics_to_csv_function(&metrics, &files_ignored, &csv, project_coverage)?;
+        print_metrics_to_csv_function(&metrics, &files_ignored, &csv, project_coverage, sort_by)?;
     }
     if let Some(json) = &args.json_output {
         print_metrics_to_json_function(
@@ -65,6 +66,7 @@ fn run_functions(args: &Args) -> Result<()> {
             &json,
             &&args.path_file,
             project_coverage,
+            sort_by,
         )?;
     };
     get_metrics_output_function(&metrics, &files_ignored, &complex_files);
@@ -74,6 +76,7 @@ fn run_functions(args: &Args) -> Result<()> {
 fn run_files(args: &Args) -> Result<()> {
     let metric_to_use = args.complexity;
     let thresholds = &args.thresholds.0;
+    let sort_by = args.sort;
     let (metrics, files_ignored, complex_files, project_coverage) = match args.json_format {
         JsonFormat::Covdir => get_metrics_concurrent_covdir(
             &args.path_file,
@@ -81,6 +84,7 @@ fn run_files(args: &Args) -> Result<()> {
             metric_to_use,
             args.n_threads.max(1),
             thresholds,
+            sort_by,
         )?,
         JsonFormat::Coveralls => get_metrics_concurrent(
             &args.path_file,
@@ -88,10 +92,11 @@ fn run_files(args: &Args) -> Result<()> {
             metric_to_use,
             args.n_threads.max(1),
             thresholds,
+            sort_by,
         )?,
     };
     if let Some(csv) = &args.path_csv {
-        print_metrics_to_csv(&metrics, &files_ignored, &csv, project_coverage)?;
+        print_metrics_to_csv(&metrics, &files_ignored, &csv, project_coverage, sort_by)?;
     }
     if let Some(json) = &args.json_output {
         print_metrics_to_json(
@@ -100,6 +105,7 @@ fn run_files(args: &Args) -> Result<()> {
             &json,
             &&args.path_file,
             project_coverage,
+            sort_by,
         )?;
     };
     get_metrics_output(&metrics, &files_ignored, &complex_files);
@@ -140,6 +146,9 @@ struct Args {
     /// Choose mode to use for analysis
     #[structopt(long, short='m',  possible_values = Mode::variants(), default_value= Mode::default() )]
     mode: Mode,
+    /// Sort complex value with the chosen metric
+    #[structopt(long, short='s',  possible_values = Sort::variants(), default_value= Sort::default() )]
+    sort: Sort,
 }
 
 fn main() -> Result<()> {

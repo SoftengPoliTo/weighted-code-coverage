@@ -21,94 +21,9 @@ fn get_min_space(root: &FuncSpace, i: usize) -> FuncSpace {
     min_space
 }
 
-// Calculate the SIFIS plain value  for the given file
+// Calculate the WCC plain value for a space
 // Return the value in case of success and an specif error in case of fails
-pub(crate) fn sifis_plain(
-    root: &FuncSpace,
-    covs: &[Value],
-    metric: Complexity,
-    is_covdir: bool,
-) -> Result<(f64, f64)> {
-    let ploc = root.metrics.loc.ploc();
-    let comp = match metric {
-        Complexity::Cyclomatic => root.metrics.cyclomatic.cyclomatic_sum(),
-        Complexity::Cognitive => root.metrics.cognitive.cognitive_sum(),
-    };
-    let sum = covs.iter().try_fold(0., |acc, line| -> Result<f64> {
-        // Check if the line is null
-        let is_null = if is_covdir {
-            line.as_i64().ok_or(Error::ConversionError())? == -1
-        } else {
-            line.is_null()
-        };
-        let sum;
-        if !is_null {
-            // If the line is not null and is covered (cov>0) the add the complexity  to the sum
-            let cov = line.as_u64().ok_or(Error::ConversionError())?;
-            if cov > 0 {
-                sum = acc + comp;
-            } else {
-                sum = acc;
-            }
-        } else {
-            sum = acc;
-        }
-        Ok(sum)
-    })?;
-    Ok((sum / ploc, sum))
-}
-
-// Calculate the SIFIS quantized value  for the given file
-// Return the value in case of success and an specif error in case of fails
-// If the complexity of the block/file is 0 the value if sifis quantized is the coverage of the file
-pub(crate) fn sifis_quantized(
-    root: &FuncSpace,
-    covs: &[Value],
-    metric: Complexity,
-    is_covdir: bool,
-) -> Result<(f64, f64)> {
-    let ploc = root.metrics.loc.ploc();
-    let sum =
-    //For each line find the minimum space and get complexity value then sum 1 if comp>threshold  else sum 1
-        covs.iter()
-            .enumerate()
-            .try_fold(0., |acc, (i, line)| -> Result<f64> {
-                // Check if the line is null
-                let is_null = if is_covdir {
-                    line.as_i64().ok_or(Error::ConversionError())? == -1
-                } else {
-                    line.is_null()
-                };
-                let sum;
-                if !is_null {
-                    // Get line
-                    let cov = line.as_u64().ok_or(Error::ConversionError())?;
-                    if cov > 0 {
-                        // If the line is covered get the space of the line and then check if the complexity is below the threshold
-                        let min_space: FuncSpace = get_min_space(root, i);
-                        let comp = match metric {
-                            Complexity::Cyclomatic => min_space.metrics.cyclomatic.cyclomatic(),
-                            Complexity::Cognitive => min_space.metrics.cognitive.cognitive(),
-                        };
-                        if comp > THRESHOLD {
-                            sum = acc + 2.;
-                        } else {
-                            sum = acc + 1.;
-                        }
-                    } else {
-                        sum = acc;
-                    }
-                } else {
-                    sum = acc;
-                }
-                Ok(sum)
-            })?;
-    Ok((sum / ploc, sum))
-}
-
-// Calculate the SIFIS plain value for a function
-// Return the value in case of success and an specif error in case of fails
-pub(crate) fn sifis_plain_function(
+pub(crate) fn wcc_plain_function(
     space: &FuncSpace,
     covs: &[Value],
     metric: Complexity,
@@ -148,10 +63,10 @@ pub(crate) fn sifis_plain_function(
     Ok((sum / ploc, sum))
 }
 
-// Calculate the SIFIS quantized value for a function
+// Calculate the WCC quantized value for a space
 // Return the value in case of success and an specif error in case of fails
-// If the complexity of the block/file is 0 the value if sifis quantized is the coverage of the file
-pub(crate) fn sifis_quantized_function(
+// If the complexity of the block/file is 0 the value if wcc quantized is the coverage of the file
+pub(crate) fn wcc_quantized_function(
     space: &FuncSpace,
     covs: &[Value],
     metric: Complexity,
@@ -213,82 +128,82 @@ mod tests {
     const COGN: Complexity = Complexity::Cognitive;
 
     #[test]
-    fn test_sifis_plain_cyclomatic() {
+    fn test_wcc_plain_cyclomatic() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis, _) = sifis_plain(&root, &vec, COMP, false).unwrap();
-        assert_eq!(sifis, 24. / 10.);
+        let (wcc, _) = wcc_plain_function(&root, &vec, COMP, false).unwrap();
+        assert_eq!(wcc, 24. / 10.);
     }
 
     #[test]
-    fn test_sifis_plain_cognitive() {
+    fn test_wcc_plain_cognitive() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis_cogn, _) = sifis_plain(&root, &vec, COGN, false).unwrap();
-        assert_eq!(sifis_cogn, 18. / 10.);
+        let (wcc_cogn, _) = wcc_plain_function(&root, &vec, COGN, false).unwrap();
+        assert_eq!(wcc_cogn, 18. / 10.);
     }
 
     #[test]
-    fn test_sifis_quantized_cyclomatic() {
+    fn test_wcc_quantized_cyclomatic() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis, _) = sifis_quantized(&root, &vec, COMP, false).unwrap();
-        assert_eq!(sifis, 6. / 10.);
+        let (wcc, _) = wcc_quantized_function(&root, &vec, COMP, false).unwrap();
+        assert_eq!(wcc, 6. / 10.);
     }
 
     #[test]
-    fn test_sifis_quantized_cognitive() {
+    fn test_wcc_quantized_cognitive() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis_cogn, _) = sifis_quantized(&root, &vec, COGN, false).unwrap();
-        assert_eq!(sifis_cogn, 6. / 10.);
+        let (wcc_cogn, _) = wcc_quantized_function(&root, &vec, COGN, false).unwrap();
+        assert_eq!(wcc_cogn, 6. / 10.);
     }
 
     #[test]
-    fn test_sifis_plain_cyclomatic_function() {
+    fn test_wcc_plain_cyclomatic_function() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis, _) = sifis_plain_function(&root, &vec, COMP, false).unwrap();
-        assert_eq!(sifis, 24. / 10.);
+        let (wcc, _) = wcc_plain_function(&root, &vec, COMP, false).unwrap();
+        assert_eq!(wcc, 24. / 10.);
     }
 
     #[test]
-    fn test_sifis_plain_cognitive_function() {
+    fn test_wcc_plain_cognitive_function() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis_cogn, _) = sifis_plain_function(&root, &vec, COGN, false).unwrap();
-        assert_eq!(sifis_cogn, 18. / 10.);
+        let (wcc_cogn, _) = wcc_plain_function(&root, &vec, COGN, false).unwrap();
+        assert_eq!(wcc_cogn, 18. / 10.);
     }
 
     #[test]
-    fn test_sifis_quantized_cyclomatic_function() {
+    fn test_wcc_quantized_cyclomatic_function() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis, _) = sifis_quantized_function(&root, &vec, COMP, false).unwrap();
-        assert_eq!(sifis, 6. / 10.);
+        let (wcc, _) = wcc_quantized_function(&root, &vec, COMP, false).unwrap();
+        assert_eq!(wcc, 6. / 10.);
     }
 
     #[test]
-    fn test_sifis_quantized_cognitive_function() {
+    fn test_wcc_quantized_cognitive_function() {
         let file = fs::read_to_string(JSON).unwrap();
         let covs = read_json(file, PREFIX).unwrap();
         let root = get_root(FILE).unwrap();
         let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (sifis_cogn, _) = sifis_quantized_function(&root, &vec, COGN, false).unwrap();
-        assert_eq!(sifis_cogn, 6. / 10.);
+        let (wcc_cogn, _) = wcc_quantized_function(&root, &vec, COGN, false).unwrap();
+        assert_eq!(wcc_cogn, 6. / 10.);
     }
 }
