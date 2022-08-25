@@ -315,7 +315,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "SKUNK",
             "IGNORED",
             "IS COMPLEX",
-            "FILE PATH",
+            "FUNCTION PATH",
         ])?;
         result.iter().try_for_each(|m| -> Result<()> {
             writer.write_record(&[
