@@ -2,6 +2,7 @@ use std::sync::PoisonError;
 
 use csv;
 use serde_json;
+use tera;
 use thiserror::Error;
 
 /// Customized error messages using thiserror library
@@ -35,6 +36,8 @@ pub enum Error {
     ThresholdsError(),
     #[error("Error while sending job via sender")]
     SenderError(),
+    #[error("Error while creating HTML file")]
+    HTMLError(#[from] tera::Error),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;

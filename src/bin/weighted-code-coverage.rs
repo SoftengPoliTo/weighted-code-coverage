@@ -57,13 +57,23 @@ fn run_functions(args: &Args) -> Result<()> {
         )?,
     };
     if let Some(csv) = &args.path_csv {
-        print_metrics_to_csv_function(&metrics, &files_ignored, &csv, project_coverage, sort_by)?;
+        print_metrics_to_csv_function(&metrics, &files_ignored, csv, project_coverage, sort_by)?;
     }
     if let Some(json) = &args.json_output {
         print_metrics_to_json_function(
             &metrics,
             &files_ignored,
             &json,
+            &&args.path_file,
+            project_coverage,
+            sort_by,
+        )?;
+    };
+    if let Some(html) = &args.path_html {
+        print_metrics_to_html_function(
+            &metrics,
+            &files_ignored,
+            &html,
             &&args.path_file,
             project_coverage,
             sort_by,
@@ -96,13 +106,23 @@ fn run_files(args: &Args) -> Result<()> {
         )?,
     };
     if let Some(csv) = &args.path_csv {
-        print_metrics_to_csv(&metrics, &files_ignored, &csv, project_coverage, sort_by)?;
+        print_metrics_to_csv(&metrics, &files_ignored, csv, project_coverage, sort_by)?;
     }
     if let Some(json) = &args.json_output {
         print_metrics_to_json(
             &metrics,
             &files_ignored,
             &json,
+            &&args.path_file,
+            project_coverage,
+            sort_by,
+        )?;
+    };
+    if let Some(html) = &args.path_html {
+        print_metrics_to_html(
+            &metrics,
+            &files_ignored,
+            &html,
             &&args.path_file,
             project_coverage,
             sort_by,
@@ -125,6 +145,9 @@ struct Args {
     /// Path where to save the output of the csv file
     #[clap(long = "csv", parse(from_os_str))]
     path_csv: Option<PathBuf>,
+    /// Path where to save the output of the HTML file
+    #[clap(long = "html", parse(from_os_str))]
+    path_html: Option<PathBuf>,
     /// Path where to save the output of the json file
     #[clap(long = "json", parse(from_os_str))]
     json_output: Option<PathBuf>,
