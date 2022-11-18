@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}WCC report - {{ project_folder }} {% endblock title %}
+
+{%- block content -%}
+    <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th class="has-text-centered" colspan="2">FUNCTION</th>
+                <th class="has-text-centered" colspan="2">WCC PLAIN</th>
+                <th class="has-text-centered" colspan="2">WCC QUANTIZED</th>
+                <th class="has-text-centered" colspan="2">CRAP</th>
+                <th class="has-text-centered" colspan="2">SKUNKSCORE</th>
+                <th class="has-text-centered" colspan="2">COMPLEX</th>
+                <th class="has-text-centered" colspan="2">PATH</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for item in metrics -%}
+                <tr>
+                    <td class="has-text-centered" colspan="2"> {{item.file_name}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.file_path}} </td>
+                </tr>
+                {%- for item in item.functions -%}
+                <tr>
+                    <td class="has-text-centered" colspan="2"> {{item.function_name}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.function_path}} </td>
+                </tr>
+                {%- endfor -%}
+            {%- endfor -%}
+        </tbody>
+    </table>
+    <h1> Complex Functions : {{number_of_complex_files}}</h1>
+    <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th class="has-text-centered" colspan="2">FUNCTION</th>
+                <th class="has-text-centered" colspan="2">WCC PLAIN</th>
+                <th class="has-text-centered" colspan="2">WCC QUANTIZED</th>
+                <th class="has-text-centered" colspan="2">CRAP</th>
+                <th class="has-text-centered" colspan="2">SKUNKSCORE</th>
+                <th class="has-text-centered" colspan="2">COMPLEX</th>
+                <th class="has-text-centered" colspan="2">PATH</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%- for item in complex_functions -%}
+                <tr>
+                    <td class="has-text-centered" colspan="2"> {{item.function_name}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
+                    <td class="has-text-centered" colspan="2"> {{item.function_path}} </td>
+                </tr>
+            {%- endfor -%}
+        </tbody>
+    </table>
+    <h1> Files Ignored: {{number_of_files_ignored}}</h1>
+    <ul>
+        {%- for file in files_ignored -%}
+        <li>{{ file }}</li>      
+        {%- endfor -%}
+    </ul>
+{%- endblock content -%}

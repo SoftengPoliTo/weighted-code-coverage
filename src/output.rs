@@ -1,8 +1,12 @@
+use std::fs;
 use std::fs::File;
 use std::path::*;
 
+use chrono::{DateTime, Utc};
 use csv;
 use serde::{Deserialize, Serialize};
+use tera::Context;
+use tera::Tera;
 use tracing::debug;
 
 use crate::error::*;
@@ -34,6 +38,32 @@ pub struct JSONOutputFunc {
     project_coverage: f64,
 }
 
+#[derive(Serialize)]
+struct HTMLTemplateFile {
+    project_folder: String,
+    number_of_files_ignored: usize,
+    number_of_complex_files: usize,
+    metrics: Vec<FileMetrics>,
+    files_ignored: Vec<String>,
+    complex_files: Vec<FileMetrics>,
+    project_coverage: f64,
+    bulma_version: String,
+    date: DateTime<Utc>,
+}
+
+#[derive(Serialize)]
+struct HTMLTemplateFunction {
+    project_folder: String,
+    number_of_files_ignored: usize,
+    number_of_complex_files: usize,
+    metrics: Vec<RootMetrics>,
+    files_ignored: Vec<String>,
+    complex_functions: Vec<FunctionMetrics>,
+    project_coverage: f64,
+    bulma_version: String,
+    date: DateTime<Utc>,
+}
+
 trait PrintResult<T> {
     fn print_result(result: &T, files_ignored: usize, complex_files: usize);
     fn print_json_to_file(
@@ -49,6 +79,14 @@ trait PrintResult<T> {
         files_ignored: &[String],
         project_coverage: f64,
         csv_path: &Path,
+        sort_by: Sort,
+    ) -> Result<()>;
+    fn print_html_to_file(
+        result: &T,
+        files_ignored: &[String],
+        html: &Path,
+        project_folder: &Path,
+        project_coverage: f64,
         sort_by: Sort,
     ) -> Result<()>;
 }
@@ -94,7 +132,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
         });
         let mut writer = csv::Writer::from_path(csv_path)?;
-        writer.write_record(&[
+        writer.write_record([
             "FILE",
             "WCC PLAIN",
             "WCC QUANTIZED",
@@ -105,7 +143,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             "FILE PATH",
         ])?;
         result.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 &m.file,
                 &format!("{:.3}", m.metrics.wcc_plain),
                 &format!("{:.3}", m.metrics.wcc_quantized),
@@ -117,7 +155,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             ])?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "PROJECT_COVERAGE",
             format!("{:.3}", project_coverage).as_str(),
             "-",
@@ -127,7 +165,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             "-",
             "-",
         ])?;
-        writer.write_record(&[
+        writer.write_record([
             "LIST OF COMPLEX FILES",
             "----------",
             "----------",
@@ -138,7 +176,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             "----------",
         ])?;
         complex_files.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 &m.file,
                 &format!("{:.3}", m.metrics.wcc_plain),
                 &format!("{:.3}", m.metrics.wcc_quantized),
@@ -150,7 +188,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             ])?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "TOTAL COMPLEX FILES",
             format!("{:?}", complex_files.len()).as_str(),
             "",
@@ -160,7 +198,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             "",
             "",
         ])?;
-        writer.write_record(&[
+        writer.write_record([
             "LIST OF IGNORED FILES",
             "----------",
             "----------",
@@ -171,7 +209,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             "----------",
         ])?;
         files_ignored.iter().try_for_each(|file| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 file.as_str(),
                 format!("{:.3}", 0.).as_str(),
                 format!("{:.3}", 0.).as_str(),
@@ -183,7 +221,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             ])?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "TOTAL FILES IGNORED",
             format!("{:?}", files_ignored.len()).as_str(),
             "",
@@ -223,6 +261,48 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             project_coverage,
         );
         serde_json::to_writer(&File::create(json_path)?, &json)?;
+        Ok(())
+    }
+    fn print_html_to_file(
+        result: &Vec<FileMetrics>,
+        files_ignored: &[String],
+        html: &Path,
+        project_folder: &Path,
+        project_coverage: f64,
+        sort_by: Sort,
+    ) -> Result<()> {
+        let tera = match Tera::new("src/templates/*.html") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
+        let mut complex_files = result
+            .iter()
+            .filter(|m| m.metrics.is_complex)
+            .cloned()
+            .collect::<Vec<FileMetrics>>();
+        complex_files.sort_by(|a, b| match sort_by {
+            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
+            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
+            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
+            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
+        });
+        let template = HTMLTemplateFile {
+            project_folder: project_folder.display().to_string(),
+            number_of_files_ignored: files_ignored.len(),
+            number_of_complex_files: complex_files.len(),
+            metrics: result.to_vec(),
+            files_ignored: files_ignored.to_vec(),
+            complex_files,
+            project_coverage,
+            bulma_version: "0.9.1".to_string(),
+            date: Utc::now(),
+        };
+        let output = tera.render("files.html", &Context::from_serialize(&template)?)?;
+        //let mut file = File::create("./output/index.html")?;
+        fs::write(html, output)?;
         Ok(())
     }
 }
@@ -307,7 +387,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
         });
         let mut writer = csv::Writer::from_path(csv_path)?;
-        writer.write_record(&[
+        writer.write_record([
             "FUNCTION",
             "WCC PLAIN",
             "WCC QUANTIZED",
@@ -318,7 +398,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "FUNCTION PATH",
         ])?;
         result.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 &m.file_name,
                 &format!("{:.3}", m.metrics.wcc_plain),
                 &format!("{:.3}", m.metrics.wcc_quantized),
@@ -329,7 +409,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
                 &m.file_path,
             ])?;
             m.functions.iter().try_for_each(|m| -> Result<()> {
-                writer.write_record(&[
+                writer.write_record([
                     &m.function_name,
                     &format!("{:.3}", m.metrics.wcc_plain),
                     &format!("{:.3}", m.metrics.wcc_quantized),
@@ -343,7 +423,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             })?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "PROJECT_COVERAGE",
             format!("{:.3}", project_coverage).as_str(),
             "-",
@@ -353,7 +433,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "-",
             "-",
         ])?;
-        writer.write_record(&[
+        writer.write_record([
             "LIST OF COMPLEX FUNCTIONS",
             "----------",
             "----------",
@@ -364,7 +444,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "----------",
         ])?;
         complex_functions.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 &m.function_name,
                 &format!("{:.3}", m.metrics.wcc_plain),
                 &format!("{:.3}", m.metrics.wcc_quantized),
@@ -376,7 +456,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             ])?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "TOTAL COMPLEX FUNCTIONS",
             format!("{:?}", complex_functions.len()).as_str(),
             "",
@@ -386,7 +466,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "",
             "",
         ])?;
-        writer.write_record(&[
+        writer.write_record([
             "LIST OF IGNORED FILES",
             "----------",
             "----------",
@@ -397,7 +477,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "----------",
         ])?;
         files_ignored.iter().try_for_each(|file| -> Result<()> {
-            writer.write_record(&[
+            writer.write_record([
                 file.as_str(),
                 format!("{:.3}", 0.).as_str(),
                 format!("{:.3}", 0.).as_str(),
@@ -409,7 +489,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             ])?;
             Ok(())
         })?;
-        writer.write_record(&[
+        writer.write_record([
             "TOTAL FILES IGNORED",
             format!("{:?}", files_ignored.len()).as_str(),
             "",
@@ -420,6 +500,48 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             "",
         ])?;
         writer.flush()?;
+        Ok(())
+    }
+    fn print_html_to_file(
+        result: &Vec<RootMetrics>,
+        files_ignored: &[String],
+        html: &Path,
+        project_folder: &Path,
+        project_coverage: f64,
+        sort_by: Sort,
+    ) -> Result<()> {
+        let tera = match Tera::new("src/templates/*.html") {
+            Ok(t) => t,
+            Err(e) => {
+                println!("Parsing error(s): {}", e);
+                ::std::process::exit(1);
+            }
+        };
+        let mut complex_functions: Vec<FunctionMetrics> = result
+            .iter()
+            .flat_map(|m| m.functions.clone())
+            .filter(|m| m.metrics.is_complex)
+            .collect::<Vec<FunctionMetrics>>();
+        complex_functions.sort_by(|a, b| match sort_by {
+            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
+            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
+            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
+            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
+        });
+        let template = HTMLTemplateFunction {
+            project_folder: project_folder.display().to_string(),
+            number_of_files_ignored: files_ignored.len(),
+            number_of_complex_files: complex_functions.len(),
+            metrics: result.to_vec(),
+            files_ignored: files_ignored.to_vec(),
+            complex_functions,
+            project_coverage,
+            bulma_version: "0.9.1".to_string(),
+            date: Utc::now(),
+        };
+        let output = tera.render("functions.html", &Context::from_serialize(&template)?)?;
+        //let mut file = File::create("./output/index.html")?;
+        fs::write(html, output)?;
         Ok(())
     }
 }
@@ -521,6 +643,26 @@ pub fn print_metrics_to_json<A: AsRef<Path> + Copy>(
     )
 }
 
+/// Prints the the given  metrics ,files ignored and complex files  in a json format
+pub fn print_metrics_to_html<A: AsRef<Path> + Copy>(
+    metrics: &Vec<FileMetrics>,
+    files_ignored: &[String],
+    html: A,
+    project_folder: A,
+    project_coverage: f64,
+    sort_by: Sort,
+) -> Result<()> {
+    debug!("Exporting to HTML...");
+    Text::print_html_to_file(
+        metrics,
+        files_ignored,
+        html.as_ref(),
+        project_folder.as_ref(),
+        project_coverage,
+        sort_by,
+    )
+}
+
 pub fn get_metrics_output_function(
     metrics: &Vec<RootMetrics>,
     files_ignored: &[String],
@@ -565,6 +707,26 @@ pub fn print_metrics_to_json_function<A: AsRef<Path> + Copy>(
         project_coverage,
         json_output.as_ref(),
         project_folder.as_ref(),
+        sort_by,
+    )
+}
+
+/// Prints the the given  metrics per function, files ignored and complex functions  in a json format
+pub fn print_metrics_to_html_function<A: AsRef<Path> + Copy>(
+    metrics: &Vec<RootMetrics>,
+    files_ignored: &[String],
+    html: A,
+    project_folder: A,
+    project_coverage: f64,
+    sort_by: Sort,
+) -> Result<()> {
+    debug!("Exporting to HTML...");
+    Text::print_html_to_file(
+        metrics,
+        files_ignored,
+        html.as_ref(),
+        project_folder.as_ref(),
+        project_coverage,
         sort_by,
     )
 }
