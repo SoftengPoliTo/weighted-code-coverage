@@ -186,6 +186,20 @@ pub(crate) fn read_files(files_path: &Path) -> Result<Vec<String>> {
     Ok(vec)
 }
 
+fn get_prefix<'a>(prefix: &'a str, to_check: &'a str) -> Result<String> {
+    let mut s1 = prefix.split('/').collect::<Vec<&str>>();
+    let mut s2 = to_check.split('/').collect::<Vec<&str>>();
+    s1.pop();
+    while let Some(s) = s2.pop() {
+        if let Some(last) = s1.last() {
+            if *last == s {
+                s1.pop();
+            }
+        }
+    }
+    Ok(s1.join("/") + "/")
+}
+
 // This function read the content of the coveralls  json file obtain by using grcov
 // Return a HashMap with all the files arrays of covered lines using the path to the file as key
 pub(crate) fn read_json(file: String, prefix: &str) -> Result<HashMap<String, Vec<Value>>> {
@@ -196,7 +210,9 @@ pub(crate) fn read_json(file: String, prefix: &str) -> Result<HashMap<String, Ve
         .ok_or(Error::ReadingJSONError())?;
     let mut covs = HashMap::<String, Vec<Value>>::new();
     vec.iter().try_for_each(|x| -> Result<()> {
-        let name = Path::new(prefix).join(x["name"].as_str().ok_or(Error::PathConversionError())?);
+        let n = x["name"].as_str().ok_or(Error::PathConversionError())?;
+        let prefix = get_prefix(prefix, n)?;
+        let name = Path::new(&prefix).join(x["name"].as_str().ok_or(Error::PathConversionError())?);
         let value = x["coverage"]
             .as_array()
             .ok_or(Error::ConversionError())?
@@ -275,7 +291,8 @@ pub(crate) fn read_json_covdir(file: String, map_prefix: &str) -> Result<HashMap
                         .ok_or(Error::ConversionError())?,
                 };
                 let name_path = format!("{}/{}", prefix, key);
-                res.insert(map_prefix.to_owned() + name_path.as_str(), covdir);
+                let map_prefix = get_prefix(map_prefix, name_path.as_str())?;
+                res.insert(map_prefix + name_path.as_str(), covdir);
             }
             Ok(())
         })?;
