@@ -30,7 +30,10 @@ pub enum Complexity {
 
 impl fmt::Display for Complexity {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            Self::Cyclomatic => write!(f, "cyclomatic"),
+            Self::Cognitive => write!(f, "cognitive"),
+        }
     }
 }
 
