@@ -290,7 +290,7 @@ pub(crate) fn read_json_covdir(file: String, map_prefix: &str) -> Result<HashMap
                         .as_f64()
                         .ok_or(Error::ConversionError())?,
                 };
-                let name_path = format!("{}/{}", prefix, key);
+                let name_path = format!("{prefix}/{key}");
                 let map_prefix = get_prefix(map_prefix, name_path.as_str())?;
                 res.insert(map_prefix + name_path.as_str(), covdir);
             }

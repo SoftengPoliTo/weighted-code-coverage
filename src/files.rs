@@ -290,7 +290,7 @@ fn consumer(receiver: JobReceiver, sender_composer: ComposerSender, cfg: &Config
         }
     }
     if let Err(_e) = sender_composer.send(Some(composer_output)) {
-        println!("{}", _e);
+        println!("{_e}");
         return Err(Error::SenderError());
     }
     Ok(())

@@ -266,7 +266,7 @@ fn consumer(
         }
     }
     if let Err(_e) = sender_composer.send(Some(composer_output)) {
-        println!("{}", _e);
+        println!("{_e}");
         return Err(Error::SenderError());
     }
     Ok(())
@@ -537,7 +537,7 @@ fn consumer_covdir(
         }
     }
     if let Err(_e) = sender_composer.send(Some(composer_output)) {
-        println!("{}", _e);
+        println!("{_e}");
         return Err(Error::SenderError());
     }
     Ok(())

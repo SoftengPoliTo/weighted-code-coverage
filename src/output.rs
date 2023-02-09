@@ -110,8 +110,8 @@ impl PrintResult<Vec<FileMetrics>> for Text {
                 m.file_path
             );
         });
-        println!("FILES IGNORED: {}", files_ignored);
-        println!("COMPLEX FILES: {}", complex_files);
+        println!("FILES IGNORED: {files_ignored}");
+        println!("COMPLEX FILES: {complex_files}");
     }
     fn print_csv_to_file(
         result: &Vec<FileMetrics>,
@@ -157,7 +157,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
         })?;
         writer.write_record([
             "PROJECT_COVERAGE",
-            format!("{:.3}", project_coverage).as_str(),
+            format!("{project_coverage:.3}").as_str(),
             "-",
             "-",
             "-",
@@ -274,7 +274,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
         let tera = match Tera::new("src/templates/*.html") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {}", e);
+                println!("Parsing error(s): {e}");
                 ::std::process::exit(1);
             }
         };
@@ -336,8 +336,8 @@ impl PrintResult<Vec<RootMetrics>> for Text {
                 );
             });
         });
-        println!("FILES IGNORED: {}", files_ignored);
-        println!("COMPLEX FUNCTIONS: {}", complex_files);
+        println!("FILES IGNORED: {files_ignored}");
+        println!("COMPLEX FUNCTIONS: {complex_files}");
     }
     fn print_json_to_file(
         result: &Vec<RootMetrics>,
@@ -425,7 +425,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
         })?;
         writer.write_record([
             "PROJECT_COVERAGE",
-            format!("{:.3}", project_coverage).as_str(),
+            format!("{project_coverage:.3}").as_str(),
             "-",
             "-",
             "-",
@@ -513,7 +513,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
         let tera = match Tera::new("src/templates/*.html") {
             Ok(t) => t,
             Err(e) => {
-                println!("Parsing error(s): {}", e);
+                println!("Parsing error(s): {e}");
                 ::std::process::exit(1);
             }
         };
