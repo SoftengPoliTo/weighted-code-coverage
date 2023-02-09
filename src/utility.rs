@@ -1,10 +1,11 @@
 use core::cmp::Ordering;
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::fmt;
 use std::fs;
 use std::path::*;
+use std::str::FromStr;
 
-use arg_enum_proc_macro::ArgEnum;
 use rust_code_analysis::{get_function_spaces, guess_language, read_file, FuncSpace, SpaceKind};
 use serde_json::Map;
 use serde_json::Value;
@@ -19,33 +20,73 @@ use crate::metrics::wcc::*;
 const COMPLEXITY_FACTOR: f64 = 25.0;
 
 /// Complexity Metrics
-#[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Complexity {
     /// Cyclomatic metric.
-    #[arg_enum(name = "cyclomatic")]
     Cyclomatic,
     /// Cognitive metric.
-    #[arg_enum(name = "cognitive")]
     Cognitive,
 }
+
+impl fmt::Display for Complexity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl FromStr for Complexity {
+    type Err = String;
+
+    fn from_str(complexity: &str) -> std::result::Result<Self, Self::Err> {
+        match complexity {
+            "cyclomatic" => Ok(Complexity::Cyclomatic),
+            "cognitive" => Ok(Complexity::Cognitive),
+            _ => Err(format!("{complexity:?} is not a supported complexity.")),
+        }
+    }
+}
+
 impl Complexity {
-    /// Default Complexity format.
+    /// All complexity formats.
+    pub const fn all() -> &'static [&'static str] {
+        &["cyclomatic", "cognitive"]
+    }
+
+    /// Default complexity format.
     pub const fn default() -> &'static str {
         "cyclomatic"
     }
 }
 
 /// JSONs format available
-#[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum JsonFormat {
     /// Cyclomatic metric.
-    #[arg_enum(name = "covdir")]
     Covdir,
     /// Cognitive metric.
-    #[arg_enum(name = "coveralls")]
     Coveralls,
 }
+
+impl FromStr for JsonFormat {
+    type Err = String;
+
+    fn from_str(json_type: &str) -> std::result::Result<Self, Self::Err> {
+        match json_type {
+            "covdir" => Ok(JsonFormat::Covdir),
+            "coveralls" => Ok(JsonFormat::Coveralls),
+            _ => Err(format!(
+                "{json_type:?} is not a supported code coverage output format."
+            )),
+        }
+    }
+}
+
 impl JsonFormat {
+    /// All output formats.
+    pub const fn all() -> &'static [&'static str] {
+        &["covdir", "coveralls"]
+    }
+
     /// Default output format.
     pub const fn default() -> &'static str {
         "coveralls"
@@ -53,40 +94,72 @@ impl JsonFormat {
 }
 
 /// Mode
-#[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Mode {
     /// Files Mode
-    #[arg_enum(name = "files")]
     Files,
     /// Functions Mode
-    #[arg_enum(name = "functions")]
     Functions,
 }
+
+impl FromStr for Mode {
+    type Err = String;
+
+    fn from_str(mode: &str) -> std::result::Result<Self, Self::Err> {
+        match mode {
+            "files" => Ok(Mode::Files),
+            "functions" => Ok(Mode::Functions),
+            _ => Err(format!("{mode:?} is not a supported mode.")),
+        }
+    }
+}
+
 impl Mode {
-    /// Default output format.
+    /// All modes.
+    pub const fn all() -> &'static [&'static str] {
+        &["files", "functions"]
+    }
+
+    /// Default mode.
     pub const fn default() -> &'static str {
         "files"
     }
 }
 
 /// Sort
-#[derive(ArgEnum, Copy, Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Sort {
     /// Wcc Plain
-    #[arg_enum(name = "wcc_plain")]
     WccPlain,
     /// Wcc Plain quantized
-    #[arg_enum(name = "wcc_q")]
     WccQuantized,
     /// Crap
-    #[arg_enum(name = "crap")]
     Crap,
     /// Skunk
-    #[arg_enum(name = "skunk")]
     Skunk,
 }
+
+impl FromStr for Sort {
+    type Err = String;
+
+    fn from_str(sort: &str) -> std::result::Result<Self, Self::Err> {
+        match sort {
+            "wcc_plain" => Ok(Sort::WccPlain),
+            "wcc_quantized" => Ok(Sort::WccQuantized),
+            "crap" => Ok(Sort::Crap),
+            "skunk" => Ok(Sort::Skunk),
+            _ => Err(format!("{sort:?} is not a supported metric.")),
+        }
+    }
+}
+
 impl Sort {
-    /// Default output format.
+    /// All sorts.
+    pub const fn all() -> &'static [&'static str] {
+        &["wcc_plain", "wcc_quantized", "crap", "skunk"]
+    }
+
+    /// Default sort.
     pub const fn default() -> &'static str {
         "wcc_plain"
     }

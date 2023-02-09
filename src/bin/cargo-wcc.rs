@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::{Parser, Subcommand};
 use tracing_subscriber::EnvFilter;
 
@@ -10,7 +11,7 @@ use weighted_code_coverage::output::*;
 use weighted_code_coverage::utility::{Complexity, JsonFormat, Mode, Sort};
 
 const fn thresholds_long_help() -> &'static str {
-    "Set four  thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n 
+    "Set four  thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n
     All the values must be floats\n
     All Thresholds has 0 as minimum value, thus no threshold at all.\n
     WCC PLAIN has a max threshold of COMP*SLOC/PLOC\n
@@ -19,7 +20,7 @@ const fn thresholds_long_help() -> &'static str {
     SKUNK has a max threshold of COMP/25\n"
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 struct Thresholds(Vec<f64>);
 
 impl std::str::FromStr for Thresholds {
@@ -136,41 +137,45 @@ fn run_files(args: &Args) -> Result<()> {
 #[clap(author, version, about)]
 struct Args {
     /// Path to the project folder
-    #[clap(short = 'p', long = "path_file", parse(from_os_str))]
+    #[clap(short, value_hint = clap::ValueHint::DirPath)]
     path_file: PathBuf,
 
     /// Path to the grcov json in coveralls/covdir format
-    #[clap(short = 'j', long = "path_json", parse(from_os_str))]
+    #[clap(short = 'j', long = "path_json", value_hint = clap::ValueHint::DirPath)]
     path_json: PathBuf,
     /// Path where to save the output of the csv file
-    #[clap(long = "csv", parse(from_os_str))]
+    #[clap(long = "csv", value_hint = clap::ValueHint::DirPath)]
     path_csv: Option<PathBuf>,
-    /// Path where to save the output of the json file
-    #[clap(long = "json", parse(from_os_str))]
-    json_output: Option<PathBuf>,
     /// Path where to save the output of the HTML file
-    #[clap(long = "html", parse(from_os_str))]
+    #[clap(long = "html", value_hint = clap::ValueHint::DirPath)]
     path_html: Option<PathBuf>,
+    /// Path where to save the output of the json file
+    #[clap(long = "json", value_hint = clap::ValueHint::DirPath)]
+    json_output: Option<PathBuf>,
     /// Choose complexity metric to use
-    #[structopt(long, short, required = false, possible_values = Complexity::variants(), default_value= Complexity::default())]
+    #[clap(long, short, default_value = Complexity::default(), value_parser = PossibleValuesParser::new(Complexity::all())
+        .map(|s| s.parse::<Complexity>().unwrap()))]
     complexity: Complexity,
 
     /// Number of threads to use for concurrency
-    #[clap(long = "n_threads", short = 'n', default_value_t = 2)]
+    #[clap(default_value_t = 2)]
     n_threads: usize,
     /// Specify the type of format used between coveralls and covdir
-    #[structopt(long, short='f', required = false, possible_values = JsonFormat::variants(), default_value= JsonFormat::default() )]
+    #[clap(long, short = 'f', default_value= JsonFormat::default(), value_parser = PossibleValuesParser::new(JsonFormat::all())
+        .map(|s| s.parse::<JsonFormat>().unwrap()))]
     json_format: JsonFormat,
-    #[structopt(long, short, required = false,long_help=thresholds_long_help(),default_value="35.0,1.5,35.0,30.0")]
+    #[clap(long, short, long_help = thresholds_long_help(), default_value = "35.0,1.5,35.0,30.0")]
     thresholds: Thresholds,
     /// Output the generated paths as they are produced
     #[clap(short, long, global = true)]
     verbose: bool,
     /// Choose mode to use for analysis
-    #[structopt(long, short='m',  possible_values = Mode::variants(), default_value= Mode::default() )]
+    #[clap(long, short = 'm', default_value= Mode::default(), value_parser = PossibleValuesParser::new(Mode::all())
+        .map(|s| s.parse::<Mode>().unwrap()))]
     mode: Mode,
     /// Sort complex value with the chosen metric
-    #[structopt(long, short='s',  possible_values = Sort::variants(), default_value= Sort::default() )]
+    #[clap(long, short, default_value = Sort::default(), value_parser = PossibleValuesParser::new(Sort::all())
+        .map(|s| s.parse::<Sort>().unwrap()))]
     sort: Sort,
 }
 
