@@ -3,20 +3,19 @@ use std::fs::File;
 use std::path::*;
 
 use chrono::{DateTime, Utc};
-use csv;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 use tera::Tera;
 use tracing::debug;
 
+use crate::concurrent::files::*;
+use crate::concurrent::functions::*;
 use crate::error::*;
-use crate::files::FileMetrics;
-use crate::functions::{FunctionMetrics, RootMetrics};
-use crate::utility::Sort;
+use crate::Sort;
 
 // Struct for JSON for files
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct JSONOutput {
+struct JSONOutput {
     project_folder: String,
     number_of_files_ignored: usize,
     number_of_complex_files: usize,
@@ -28,7 +27,7 @@ pub struct JSONOutput {
 
 // Struct for JSON for functions
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-pub struct JSONOutputFunc {
+struct JSONOutputFunc {
     project_folder: String,
     number_of_files_ignored: usize,
     number_of_complex_functions: usize,
@@ -300,7 +299,7 @@ impl PrintResult<Vec<FileMetrics>> for Text {
             bulma_version: "0.9.1".to_string(),
             date: Utc::now(),
         };
-        let output = tera.render("files.html", &Context::from_serialize(&template)?)?;
+        let output = tera.render("files.html", &Context::from_serialize(template)?)?;
         //let mut file = File::create("./output/index.html")?;
         fs::write(html, output)?;
         Ok(())
@@ -539,7 +538,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
             bulma_version: "0.9.1".to_string(),
             date: Utc::now(),
         };
-        let output = tera.render("functions.html", &Context::from_serialize(&template)?)?;
+        let output = tera.render("functions.html", &Context::from_serialize(template)?)?;
         //let mut file = File::create("./output/index.html")?;
         fs::write(html, output)?;
         Ok(())
@@ -547,7 +546,7 @@ impl PrintResult<Vec<RootMetrics>> for Text {
 }
 
 // Export all metrics to a json file
-pub fn export_to_json(
+fn export_to_json(
     project_folder: &Path,
     metrics: &[FileMetrics],
     files_ignored: &[String],
@@ -569,7 +568,7 @@ pub fn export_to_json(
 }
 
 // Export all metrics to a json file for functions mode
-pub fn export_to_json_function(
+fn export_to_json_function(
     project_folder: &Path,
     metrics: &[RootMetrics],
     files_ignored: &[String],
@@ -589,13 +588,13 @@ pub fn export_to_json_function(
     }
 }
 
-/// This Function get the folder of the repo to analyzed and the path to the json obtained using grcov
-/// It prints all the WCC, CRAP and SkunkScore values for all the files in the folders
-/// the output will be print as follows:
-/// FILE       | WCC PLAIN | WCC QUANTIZED | CRAP       | SKUNKSCORE | "IS_COMPLEX" | "PATH"
-/// if the a file is not found in the json that files will be skipped
+// This Function get the folder of the repo to analyzed and the path to the json obtained using grcov
+// It prints all the WCC, CRAP and SkunkScore values for all the files in the folders
+// the output will be print as follows:
+// FILE       | WCC PLAIN | WCC QUANTIZED | CRAP       | SKUNKSCORE | "IS_COMPLEX" | "PATH"
+// if the a file is not found in the json that files will be skipped
 
-pub fn get_metrics_output(
+pub(crate) fn get_metrics_output(
     metrics: &Vec<FileMetrics>,
     files_ignored: &Vec<String>,
     complex_files: &Vec<FileMetrics>,
@@ -603,10 +602,10 @@ pub fn get_metrics_output(
     Text::print_result(metrics, files_ignored.len(), complex_files.len());
 }
 
-/// Prints the the given  metrics ,files ignored and complex files  in a csv format
-/// The structure is the following :
-/// "FILE","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
-pub fn print_metrics_to_csv<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics ,files ignored and complex files  in a csv format
+// The structure is the following :
+// "FILE","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
+pub(crate) fn print_metrics_to_csv<A: AsRef<Path>>(
     metrics: &Vec<FileMetrics>,
     files_ignored: &[String],
     csv_path: A,
@@ -623,12 +622,12 @@ pub fn print_metrics_to_csv<A: AsRef<Path> + Copy>(
     )
 }
 
-/// Prints the the given  metrics ,files ignored and complex files  in a json format
-pub fn print_metrics_to_json<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics ,files ignored and complex files  in a json format
+pub(crate) fn print_metrics_to_json<A: AsRef<Path>, B: AsRef<Path>>(
     metrics: &Vec<FileMetrics>,
     files_ignored: &[String],
     json_output: A,
-    project_folder: A,
+    project_folder: B,
     project_coverage: f64,
     sort_by: Sort,
 ) -> Result<()> {
@@ -643,12 +642,12 @@ pub fn print_metrics_to_json<A: AsRef<Path> + Copy>(
     )
 }
 
-/// Prints the the given  metrics ,files ignored and complex files  in a json format
-pub fn print_metrics_to_html<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics ,files ignored and complex files  in a json format
+pub(crate) fn print_metrics_to_html<A: AsRef<Path>, B: AsRef<Path>>(
     metrics: &Vec<FileMetrics>,
     files_ignored: &[String],
     html: A,
-    project_folder: A,
+    project_folder: B,
     project_coverage: f64,
     sort_by: Sort,
 ) -> Result<()> {
@@ -663,7 +662,7 @@ pub fn print_metrics_to_html<A: AsRef<Path> + Copy>(
     )
 }
 
-pub fn get_metrics_output_function(
+pub(crate) fn get_metrics_output_function(
     metrics: &Vec<RootMetrics>,
     files_ignored: &[String],
     complex_files: &Vec<FunctionMetrics>,
@@ -671,10 +670,10 @@ pub fn get_metrics_output_function(
     Text::print_result(metrics, files_ignored.len(), complex_files.len());
 }
 
-/// Prints the the given  metrics per function ,files ignored and complex function  in a csv format
-/// The structure is the following :
-/// "FUNCTION","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
-pub fn print_metrics_to_csv_function<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics per function ,files ignored and complex function  in a csv format
+// The structure is the following :
+// "FUNCTION","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
+pub(crate) fn print_metrics_to_csv_function<A: AsRef<Path>>(
     metrics: &Vec<RootMetrics>,
     files_ignored: &[String],
     csv_path: A,
@@ -691,12 +690,12 @@ pub fn print_metrics_to_csv_function<A: AsRef<Path> + Copy>(
     )
 }
 
-/// Prints the the given  metrics per function,files ignored and complex functions  in a json format
-pub fn print_metrics_to_json_function<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics per function,files ignored and complex functions  in a json format
+pub(crate) fn print_metrics_to_json_function<A: AsRef<Path>, B: AsRef<Path>>(
     metrics: &Vec<RootMetrics>,
     files_ignored: &[String],
     json_output: A,
-    project_folder: A,
+    project_folder: B,
     project_coverage: f64,
     sort_by: Sort,
 ) -> Result<()> {
@@ -711,12 +710,12 @@ pub fn print_metrics_to_json_function<A: AsRef<Path> + Copy>(
     )
 }
 
-/// Prints the the given  metrics per function, files ignored and complex functions  in a json format
-pub fn print_metrics_to_html_function<A: AsRef<Path> + Copy>(
+// Prints the the given  metrics per function, files ignored and complex functions  in a json format
+pub(crate) fn print_metrics_to_html_function<A: AsRef<Path>, B: AsRef<Path>>(
     metrics: &Vec<RootMetrics>,
     files_ignored: &[String],
     html: A,
-    project_folder: A,
+    project_folder: B,
     project_coverage: f64,
     sort_by: Sort,
 ) -> Result<()> {
@@ -733,36 +732,34 @@ pub fn print_metrics_to_html_function<A: AsRef<Path> + Copy>(
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use crate::files::*;
-    use crate::functions::*;
-    use crate::utility::*;
+    use crate::concurrent::Metrics;
+    use crate::Complexity;
+    use crate::JsonFormat;
+    use crate::Mode;
+    use crate::OutputFormat;
+    use crate::Thresholds;
+    use crate::WccRunner;
     use std::fs;
-    use std::path::Path;
 
     const JSON: &str = "./data/seahorse/seahorse.json";
-    const FOLDER: &str = "./data/test_project/";
 
     #[test]
     fn test_file_csv() {
-        let json = Path::new(JSON);
-        let (metrics, files_ignored, _complex_files, project_coverage) = get_metrics_concurrent(
-            "./data/test_project/",
-            json,
-            Complexity::Cyclomatic,
-            8,
-            &[30., 1.5, 35., 30.],
-            Sort::WccPlain,
-        )
-        .unwrap();
-        Text::print_csv_to_file(
-            &metrics,
-            &files_ignored,
-            project_coverage,
-            Path::new("./data/test_project/to_compare.csv"),
-            Sort::WccPlain,
-        )
-        .unwrap();
+        let json = PathBuf::from(JSON);
+
+        WccRunner::new()
+            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
+            .n_threads(7)
+            .json_format(JsonFormat::Coveralls(json))
+            .mode(Mode::Files)
+            .sort_by(Sort::WccPlain)
+            .output_format(OutputFormat::Csv)
+            .output_path("./data/test_project/to_compare.csv")
+            .run("./data/test_project/")
+            .unwrap();
+
         let to_compare = fs::read_to_string("./data/test_project/to_compare.csv").unwrap();
         let expected = fs::read_to_string("./data/test_project/test.csv")
             .unwrap()
@@ -773,24 +770,21 @@ mod tests {
 
     #[test]
     fn test_file_json() {
-        let json = Path::new(JSON);
-        let path = Path::new(FOLDER);
-        let (metrics, files_ignored, complex_files, project_coverage) = get_metrics_concurrent(
-            "./data/test_project/",
-            json,
-            Complexity::Cyclomatic,
-            8,
-            &[30., 1.5, 35., 30.],
-            Sort::WccPlain,
-        )
-        .unwrap();
-        let to_compare = export_to_json(
-            path,
-            &metrics,
-            &files_ignored,
-            &complex_files,
-            project_coverage,
-        );
+        let json = PathBuf::from(JSON);
+
+        WccRunner::new()
+            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
+            .n_threads(7)
+            .json_format(JsonFormat::Coveralls(json))
+            .mode(Mode::Files)
+            .sort_by(Sort::WccPlain)
+            .output_format(OutputFormat::Json)
+            .output_path("./data/test_project/to_compare.json")
+            .run("./data/test_project/")
+            .unwrap();
+
+        let json_string = fs::read_to_string("./data/test_project/to_compare.json").unwrap();
+        let to_compare: JSONOutput = serde_json::from_str(&json_string).unwrap();
         let expected = JSONOutput {
             project_folder: "./data/test_project/".into(),
             number_of_files_ignored: 0,
@@ -872,30 +866,26 @@ mod tests {
             }],
             project_coverage: 91.56,
         };
+
         assert!(to_compare == expected);
+        fs::remove_file("./data/test_project/to_compare.json").unwrap();
     }
 
     #[test]
     fn test_functions_csv() {
-        let json = Path::new(JSON);
-        let (metrics, files_ignored, _complex_files, project_coverage) =
-            get_functions_metrics_concurrent(
-                "./data/test_project/",
-                json,
-                Complexity::Cyclomatic,
-                8,
-                &[30., 1.5, 35., 30.],
-                Sort::WccPlain,
-            )
+        let json = PathBuf::from(JSON);
+
+        WccRunner::new()
+            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
+            .n_threads(7)
+            .json_format(JsonFormat::Coveralls(json))
+            .mode(Mode::Functions)
+            .sort_by(Sort::WccPlain)
+            .output_format(OutputFormat::Csv)
+            .output_path("./data/test_project/to_compare_fun.csv")
+            .run("./data/test_project/")
             .unwrap();
-        Text::print_csv_to_file(
-            &metrics,
-            &files_ignored,
-            project_coverage,
-            Path::new("./data/test_project/to_compare_fun.csv"),
-            Sort::WccPlain,
-        )
-        .unwrap();
+
         let to_compare = fs::read_to_string("./data/test_project/to_compare_fun.csv").unwrap();
         let expected = fs::read_to_string("./data/test_project/test_fun.csv")
             .unwrap()
@@ -906,25 +896,21 @@ mod tests {
 
     #[test]
     fn test_functions_json() {
-        let json = Path::new(JSON);
-        let (metrics, files_ignored, complex_files, project_coverage) =
-            get_functions_metrics_concurrent(
-                "./data/test_project/",
-                json,
-                Complexity::Cyclomatic,
-                8,
-                &[30., 1.5, 35., 30.],
-                Sort::WccPlain,
-            )
+        let json = PathBuf::from(JSON);
+
+        WccRunner::new()
+            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
+            .n_threads(7)
+            .json_format(JsonFormat::Coveralls(json))
+            .mode(Mode::Functions)
+            .sort_by(Sort::WccPlain)
+            .output_format(OutputFormat::Json)
+            .output_path("./data/test_project/to_compare_fun.json")
+            .run("./data/test_project/")
             .unwrap();
-        let path = Path::new(FOLDER);
-        let to_compare = export_to_json_function(
-            path,
-            &metrics,
-            &files_ignored,
-            &complex_files,
-            project_coverage,
-        );
+
+        let json_string = fs::read_to_string("./data/test_project/to_compare_fun.json").unwrap();
+        let to_compare: JSONOutputFunc = serde_json::from_str(&json_string).unwrap();
         let expected= JSONOutputFunc {
                 project_folder: "./data/test_project/".into(),
                 number_of_files_ignored: 0,
@@ -1003,9 +989,9 @@ mod tests {
                             FunctionMetrics {
                                 metrics: Metrics {
                                     wcc_plain: 2.769230769230769,
-                                    wcc_quantized: 0.9230769230769231,
+                                    wcc_quantized: 0.9230769230769232,
                                     crap: 3.0040964952207556,
-                                    skunk: 0.9230769230769231,
+                                    skunk: 0.9230769230769232,
                                     is_complex: false,
                                     coverage: 92.31
                                 },
@@ -1089,7 +1075,7 @@ mod tests {
                                     wcc_plain: 1.5,
                                     wcc_quantized: 0.75,
                                     crap: 2.011661807580175,
-                                    skunk: 1.1428571428571435,
+                                    skunk: 1.1428571428571437,
                                     is_complex: false,
                                     coverage: 85.71
                                 },
@@ -1235,6 +1221,8 @@ mod tests {
                 complex_functions: Vec::<FunctionMetrics>::new(),
                 project_coverage: 91.56
         };
+
         assert!(to_compare == expected);
+        fs::remove_file("./data/test_project/to_compare_fun.json").unwrap();
     }
 }
