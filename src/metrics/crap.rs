@@ -1,15 +1,15 @@
 use rust_code_analysis::FuncSpace;
-use serde_json::Value;
 
 use crate::error::*;
-use crate::utility::{get_covered_lines, Complexity};
+use crate::utility::get_covered_lines;
+use crate::Complexity;
 
 // Calculate the CRAP value for a given space
 // (https://testing.googleblog.com/2011/02/this-code-is-crap.html#:~:text=CRAP%20is%20short%20for%20Change,partner%20in%20crime%20Bob%20Evans.)
 // Return the value in case of success and an specif error in case of fails
 pub(crate) fn crap_function(
     space: &FuncSpace,
-    covs: &[Value],
+    covs: &[Option<i32>],
     metric: Complexity,
     coverage: Option<f64>,
 ) -> Result<f64> {
@@ -34,7 +34,7 @@ pub(crate) fn crap_function(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utility::{get_root, read_json};
+    use crate::{grcov::coveralls::Coveralls, utility::get_root};
     use std::fs;
 
     const JSON: &str = "./data/data.json";
@@ -47,39 +47,39 @@ mod tests {
     #[test]
     fn test_crap_cyclomatic() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let crap_cy = crap_function(&root, &vec, COMP, None).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let crap_cy = crap_function(&root, vec, COMP, None).unwrap();
         assert_eq!(crap_cy, 5.024);
     }
 
     #[test]
     fn test_crap_cognitive() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let crap_cogn = crap_function(&root, &vec, COGN, None).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let crap_cogn = crap_function(&root, vec, COGN, None).unwrap();
         assert_eq!(crap_cogn, 3.576);
     }
     #[test]
     fn test_crap_cyclomatic_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let crap_cy = crap_function(&root, &vec, COMP, None).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let crap_cy = crap_function(&root, vec, COMP, None).unwrap();
         assert_eq!(crap_cy, 5.024);
     }
 
     #[test]
     fn test_crap_cognitive_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let crap_cogn = crap_function(&root, &vec, COGN, None).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let crap_cogn = crap_function(&root, vec, COGN, None).unwrap();
         assert_eq!(crap_cogn, 3.576);
     }
 }

@@ -1,8 +1,6 @@
 use std::sync::PoisonError;
 
-use csv;
-use serde_json;
-use tera;
+use crossbeam::channel::SendError;
 use thiserror::Error;
 
 /// Customized error messages using thiserror library
@@ -13,43 +11,49 @@ pub enum Error {
     #[error("Error while reading json")]
     WrongJSONFile(#[from] serde_json::Error),
     #[error("Error while converting JSON value to a type")]
-    ConversionError(),
+    Conversion,
     #[error("Error while getting value from hashmap")]
-    HashMapError(),
+    HashMap,
     #[error("Failing reading JSON from string")]
-    ReadingJSONError(),
+    ReadingJSON,
     #[error("Error while computing Metrics")]
-    MetricsError(),
+    Metrics,
     #[error("Error while guessing language")]
-    LanguageError(),
+    Language,
     #[error("Error while writing on csv")]
-    WritingError(#[from] csv::Error),
+    Writing(#[from] csv::Error),
     #[error("Error during concurrency")]
-    ConcurrentError(),
+    Concurrent,
     #[error("Json Type is not supported! Only coveralls and covdir are supported.")]
-    TypeError(),
+    Type,
     #[error("Error while converting path to string")]
-    PathConversionError(),
+    PathConversion,
     #[error("Error while locking mutex")]
-    MutexError(),
+    Mutex,
     #[error("Thresholds must be only 4 in this order -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK")]
-    ThresholdsError(),
+    Thresholds,
     #[error("Error while sending job via sender")]
-    SenderError(),
+    Sender,
     #[error("Error while creating HTML file")]
-    HTMLError(#[from] tera::Error),
+    Html(#[from] tera::Error),
 }
 
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub(crate) type Result<T> = ::std::result::Result<T, Error>;
 
 impl<T> From<PoisonError<T>> for Error {
     fn from(_item: PoisonError<T>) -> Self {
-        Error::MutexError()
+        Error::Mutex
     }
 }
 
 impl From<Box<dyn std::any::Any + Send>> for Error {
     fn from(_item: Box<dyn std::any::Any + Send>) -> Self {
-        Error::ConcurrentError()
+        Error::Concurrent
+    }
+}
+
+impl<T> From<SendError<T>> for Error {
+    fn from(_item: SendError<T>) -> Self {
+        Error::Sender
     }
 }

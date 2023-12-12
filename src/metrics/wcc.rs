@@ -1,8 +1,7 @@
 use rust_code_analysis::FuncSpace;
-use serde_json::Value;
 
 use crate::error::*;
-use crate::utility::Complexity;
+use crate::Complexity;
 
 const THRESHOLD: f64 = 15.;
 // This function find the minimum space for a line i in the file
@@ -25,9 +24,8 @@ fn get_min_space(root: &FuncSpace, i: usize) -> FuncSpace {
 // Return the value in case of success and an specif error in case of fails
 pub(crate) fn wcc_plain_function(
     space: &FuncSpace,
-    covs: &[Value],
+    covs: &[Option<i32>],
     metric: Complexity,
-    is_covdir: bool,
 ) -> Result<(f64, f64)> {
     let ploc = space.metrics.loc.ploc();
     let comp = match metric {
@@ -38,26 +36,16 @@ pub(crate) fn wcc_plain_function(
         .iter()
         .enumerate()
         .try_fold(0., |acc, (i, line)| -> Result<f64> {
-            // Check if the line is null
-            let is_null = if is_covdir {
-                line.as_i64().ok_or(Error::ConversionError())? == -1
-            } else {
-                line.is_null()
-            };
-            let sum;
+            let mut sum = acc;
             let start = space.start_line - 1;
             let end = space.end_line;
-            if !is_null && (start..end).contains(&i) {
-                // If the line is not null and is covered (cov>0) the add the complexity  to the sum
-                let cov = line.as_u64().ok_or(Error::ConversionError())?;
-                if cov > 0 {
+            if let Some(cov) = *line {
+                if cov > 0 && (start..end).contains(&i) {
+                    // If the line is not null and is covered (cov>0) the add the complexity  to the sum
                     sum = acc + comp;
-                } else {
-                    sum = acc;
                 }
-            } else {
-                sum = acc;
             }
+
             Ok(sum)
         })?;
     Ok((sum / ploc, sum))
@@ -68,9 +56,8 @@ pub(crate) fn wcc_plain_function(
 // If the complexity of the block/file is 0 the value if wcc quantized is the coverage of the file
 pub(crate) fn wcc_quantized_function(
     space: &FuncSpace,
-    covs: &[Value],
+    covs: &[Option<i32>],
     metric: Complexity,
-    is_covdir: bool,
 ) -> Result<(f64, f64)> {
     let ploc = space.metrics.loc.ploc();
     let sum =
@@ -78,19 +65,11 @@ pub(crate) fn wcc_quantized_function(
         covs.iter()
             .enumerate()
             .try_fold(0., |acc, (i, line)| -> Result<f64> {
-                // Check if the line is null
-                let is_null = if is_covdir {
-                    line.as_i64().ok_or(Error::ConversionError())? == -1
-                } else {
-                    line.is_null()
-                };
-                let sum;
-                let start = space.start_line-1;
-                let end =space.end_line;
-                if !is_null && (start..end).contains(&i) {
-                    // Get line
-                    let cov = line.as_u64().ok_or(Error::ConversionError())?;
-                    if cov > 0 {
+                let mut sum = acc;
+                let start = space.start_line - 1;
+                let end = space.end_line;
+                if let Some(cov) = *line {
+                    if cov > 0 &&  (start..end).contains(&i) {
                         // If the line is covered get the space of the line and then check if the complexity is below the threshold
                         let min_space: FuncSpace = get_min_space(space, i);
                         let comp = match metric {
@@ -102,12 +81,9 @@ pub(crate) fn wcc_quantized_function(
                         } else {
                             sum = acc + 1.;
                         }
-                    } else {
-                        sum = acc;
                     }
-                } else {
-                    sum = acc;
                 }
+
                 Ok(sum)
             })?;
     Ok((sum / ploc, sum))
@@ -117,7 +93,7 @@ pub(crate) fn wcc_quantized_function(
 mod tests {
 
     use super::*;
-    use crate::utility::{get_root, read_json};
+    use crate::{grcov::coveralls::Coveralls, utility::get_root};
     use std::fs;
 
     const JSON: &str = "./data/data.json";
@@ -130,80 +106,80 @@ mod tests {
     #[test]
     fn test_wcc_plain_cyclomatic() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc, _) = wcc_plain_function(&root, &vec, COMP, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc, _) = wcc_plain_function(&root, vec, COMP).unwrap();
         assert_eq!(wcc, 24. / 10.);
     }
 
     #[test]
     fn test_wcc_plain_cognitive() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc_cogn, _) = wcc_plain_function(&root, &vec, COGN, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc_cogn, _) = wcc_plain_function(&root, vec, COGN).unwrap();
         assert_eq!(wcc_cogn, 18. / 10.);
     }
 
     #[test]
     fn test_wcc_quantized_cyclomatic() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc, _) = wcc_quantized_function(&root, &vec, COMP, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc, _) = wcc_quantized_function(&root, vec, COMP).unwrap();
         assert_eq!(wcc, 6. / 10.);
     }
 
     #[test]
     fn test_wcc_quantized_cognitive() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc_cogn, _) = wcc_quantized_function(&root, &vec, COGN, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc_cogn, _) = wcc_quantized_function(&root, vec, COGN).unwrap();
         assert_eq!(wcc_cogn, 6. / 10.);
     }
 
     #[test]
     fn test_wcc_plain_cyclomatic_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc, _) = wcc_plain_function(&root, &vec, COMP, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc, _) = wcc_plain_function(&root, vec, COMP).unwrap();
         assert_eq!(wcc, 24. / 10.);
     }
 
     #[test]
     fn test_wcc_plain_cognitive_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc_cogn, _) = wcc_plain_function(&root, &vec, COGN, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc_cogn, _) = wcc_plain_function(&root, vec, COGN).unwrap();
         assert_eq!(wcc_cogn, 18. / 10.);
     }
 
     #[test]
     fn test_wcc_quantized_cyclomatic_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc, _) = wcc_quantized_function(&root, &vec, COMP, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc, _) = wcc_quantized_function(&root, vec, COMP).unwrap();
         assert_eq!(wcc, 6. / 10.);
     }
 
     #[test]
     fn test_wcc_quantized_cognitive_function() {
         let file = fs::read_to_string(JSON).unwrap();
-        let covs = read_json(file, PREFIX).unwrap();
+        let covs = Coveralls::new(file, PREFIX).unwrap().0;
         let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().to_vec();
-        let (wcc_cogn, _) = wcc_quantized_function(&root, &vec, COGN, false).unwrap();
+        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
+        let (wcc_cogn, _) = wcc_quantized_function(&root, vec, COGN).unwrap();
         assert_eq!(wcc_cogn, 6. / 10.);
     }
 }
