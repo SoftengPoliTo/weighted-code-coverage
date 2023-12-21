@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let metadata = cmd.exec()?;
-    cargo_args.args.path_file = metadata.workspace_packages()[0]
+    cargo_args.args.project_path = metadata.workspace_packages()[0]
         .manifest_path
         .parent()
         .unwrap()

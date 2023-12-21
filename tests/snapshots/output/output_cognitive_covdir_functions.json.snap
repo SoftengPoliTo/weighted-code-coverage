@@ -1,0 +1,1410 @@
+---
+source: tests/output_test.rs
+expression: json_output
+---
+{
+  "project_folder": "./tests/seahorse/",
+  "number_of_files_ignored": 1,
+  "number_of_complex_functions": 1,
+  "files": [
+    {
+      "metrics": {
+        "wcc_plain": 66.540415704388,
+        "wcc_quantized": 0.792147806004619,
+        "crap": 100.90156470643196,
+        "skunk": 44.95679999999998,
+        "is_complex": true,
+        "coverage": 86.62
+      },
+      "file_name": "app.rs",
+      "file_path": "src/app.rs",
+      "start_line": 1,
+      "end_line": 623,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.1111111111111112,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "app_new_only_test (406, 415)",
+          "function_path": "/app_new_only_test (406,415)",
+          "start_line": 406,
+          "end_line": 415
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.80327868852459,
+            "wcc_quantized": 0.9672131147540984,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "multiple_app_test (418, 482)",
+          "function_path": "/multiple_app_test (418,482)",
+          "start_line": 418,
+          "end_line": 482
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.441860465116279,
+            "wcc_quantized": 0.9069767441860463,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "single_app_test (485, 530)",
+          "function_path": "/single_app_test (485,530)",
+          "start_line": 485,
+          "end_line": 530
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.428571428571429,
+            "wcc_quantized": 0.9047619047619048,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "flag_only_app_test (533, 577)",
+          "function_path": "/flag_only_app_test (533,577)",
+          "start_line": 533,
+          "end_line": 577
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.4,
+            "wcc_quantized": 0.9,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "single_app_equal_notation_test (580, 622)",
+          "function_path": "/single_app_equal_notation_test (580,622)",
+          "start_line": 580,
+          "end_line": 622
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.6,
+            "wcc_quantized": 0.6,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (581, 595)",
+          "function_path": "/single_app_equal_notation_test (580,622)/<anonymous> (581,595)",
+          "start_line": 581,
+          "end_line": 595
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.6,
+            "wcc_quantized": 0.6,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (534, 548)",
+          "function_path": "/flag_only_app_test (533,577)/<anonymous> (534,548)",
+          "start_line": 534,
+          "end_line": 548
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.6,
+            "wcc_quantized": 0.6,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (486, 500)",
+          "function_path": "/single_app_test (485,530)/<anonymous> (486,500)",
+          "start_line": 486,
+          "end_line": 500
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.6,
+            "wcc_quantized": 0.6,
+            "crap": 6.086232472992,
+            "skunk": 3.211199999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (419, 433)",
+          "function_path": "/multiple_app_test (418,482)/<anonymous> (419,433)",
+          "start_line": 419,
+          "end_line": 433
+        },
+        {
+          "metrics": {
+            "wcc_plain": 4.2105263157894735,
+            "wcc_quantized": 1.0526315789473684,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "help_text (373, 398)",
+          "function_path": "/App (372,399)/help_text (373,398)",
+          "start_line": 373,
+          "end_line": 398
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "new (34, 39)",
+          "function_path": "/App (24,370)/new (34,39)",
+          "start_line": 34,
+          "end_line": 39
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "author (51, 54)",
+          "function_path": "/App (24,370)/author (51,54)",
+          "start_line": 51,
+          "end_line": 54
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "description (66, 69)",
+          "function_path": "/App (24,370)/description (66,69)",
+          "start_line": 66,
+          "end_line": 69
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "usage (81, 84)",
+          "function_path": "/App (24,370)/usage (81,84)",
+          "start_line": 81,
+          "end_line": 84
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "version (96, 99)",
+          "function_path": "/App (24,370)/version (96,99)",
+          "start_line": 96,
+          "end_line": 99
+        },
+        {
+          "metrics": {
+            "wcc_plain": 2.0,
+            "wcc_quantized": 0.5,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "command (135, 148)",
+          "function_path": "/App (24,370)/command (135,148)",
+          "start_line": 135,
+          "end_line": 148
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "action (161, 164)",
+          "function_path": "/App (24,370)/action (161,164)",
+          "start_line": 161,
+          "end_line": 164
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.75,
+            "wcc_quantized": 0.875,
+            "crap": 2.009581385888,
+            "skunk": 1.0703999999999996,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "flag (177, 184)",
+          "function_path": "/App (24,370)/flag (177,184)",
+          "start_line": 177,
+          "end_line": 184
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.806451612903226,
+            "wcc_quantized": 0.6451612903225806,
+            "crap": 9.194023064232,
+            "skunk": 4.816799999999998,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "run (198, 230)",
+          "function_path": "/App (24,370)/run (198,230)",
+          "start_line": 198,
+          "end_line": 230
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.888888888888889,
+            "wcc_quantized": 0.7777777777777778,
+            "crap": 5.0598836618,
+            "skunk": 2.6759999999999993,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "select_command (234, 242)",
+          "function_path": "/App (24,370)/select_command (234,242)",
+          "start_line": 234,
+          "end_line": 242
+        },
+        {
+          "metrics": {
+            "wcc_plain": 4.0,
+            "wcc_quantized": 1.0,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "normalized_args (247, 258)",
+          "function_path": "/App (24,370)/normalized_args (247,258)",
+          "start_line": 247,
+          "end_line": 258
+        },
+        {
+          "metrics": {
+            "wcc_plain": 15.254237288135592,
+            "wcc_quantized": 0.847457627118644,
+            "crap": 18.776092256928,
+            "skunk": 9.633599999999996,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "flag_help_text (260, 327)",
+          "function_path": "/App (24,370)/flag_help_text (260,327)",
+          "start_line": 260,
+          "end_line": 327
+        },
+        {
+          "metrics": {
+            "wcc_plain": 2.4,
+            "wcc_quantized": 0.17142857142857143,
+            "crap": 14.469487908512,
+            "skunk": 7.492799999999998,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "command_help_text (329, 369)",
+          "function_path": "/App (24,370)/command_help_text (329,369)",
+          "start_line": 329,
+          "end_line": 369
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (337, 343)",
+          "function_path": "/App (24,370)/command_help_text (329,369)/<anonymous> (337,343)",
+          "start_line": 337,
+          "end_line": 343
+        },
+        {
+          "metrics": {
+            "wcc_plain": 8.181818181818182,
+            "wcc_quantized": 0.8181818181818182,
+            "crap": 10.2395346472,
+            "skunk": 5.3519999999999985,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (270, 293)",
+          "function_path": "/App (24,370)/flag_help_text (260,327)/<anonymous> (270,293)",
+          "start_line": 270,
+          "end_line": 293
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (297, 297)",
+          "function_path": "/App (24,370)/flag_help_text (260,327)/<anonymous> (297,297)",
+          "start_line": 297,
+          "end_line": 297
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (274, 274)",
+          "function_path": "/App (24,370)/flag_help_text (260,327)/<anonymous> (270,293)/<anonymous> (274,274)",
+          "start_line": 274,
+          "end_line": 274
+        },
+        {
+          "metrics": {
+            "wcc_plain": 4.0,
+            "wcc_quantized": 1.0,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (248, 257)",
+          "function_path": "/App (24,370)/normalized_args (247,258)/<anonymous> (248,257)",
+          "start_line": 248,
+          "end_line": 257
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (251, 251)",
+          "function_path": "/App (24,370)/normalized_args (247,258)/<anonymous> (248,257)/<anonymous> (251,251)",
+          "start_line": 251,
+          "end_line": 251
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.0,
+            "wcc_quantized": 0.75,
+            "crap": 4.038325543552,
+            "skunk": 2.140799999999999,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (236, 239)",
+          "function_path": "/App (24,370)/select_command (234,242)/<anonymous> (236,239)",
+          "start_line": 236,
+          "end_line": 239
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (237, 237)",
+          "function_path": "/App (24,370)/select_command (234,242)/<anonymous> (236,239)/<anonymous> (237,237)",
+          "start_line": 237,
+          "end_line": 237
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 86.62
+          },
+          "function_name": "<anonymous> (139, 139)",
+          "function_path": "/App (24,370)/command (135,148)/<anonymous> (139,139)",
+          "start_line": 139,
+          "end_line": 139
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 19.5,
+        "wcc_quantized": 0.7222222222222222,
+        "crap": 29.688518192625004,
+        "skunk": 16.686000000000003,
+        "is_complex": false,
+        "coverage": 84.55
+      },
+      "file_name": "command.rs",
+      "file_path": "src/command.rs",
+      "start_line": 1,
+      "end_line": 240,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0909090909090908,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "command_test (228, 239)",
+          "function_path": "/command_test (228,239)",
+          "start_line": 228,
+          "end_line": 239
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "<anonymous> (229, 229)",
+          "function_path": "/command_test (228,239)/<anonymous> (229,229)",
+          "start_line": 229,
+          "end_line": 229
+        },
+        {
+          "metrics": {
+            "wcc_plain": 2.1818181818181817,
+            "wcc_quantized": 1.0909090909090908,
+            "crap": 2.0147518145,
+            "skunk": 1.2360000000000002,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "help_text (206, 220)",
+          "function_path": "/Command (205,221)/help_text (206,220)",
+          "start_line": 206,
+          "end_line": 220
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "new (30, 35)",
+          "function_path": "/Command (20,203)/new (30,35)",
+          "start_line": 30,
+          "end_line": 35
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "description (47, 50)",
+          "function_path": "/Command (20,203)/description (47,50)",
+          "start_line": 47,
+          "end_line": 50
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "usage (62, 65)",
+          "function_path": "/Command (20,203)/usage (62,65)",
+          "start_line": 62,
+          "end_line": 65
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "action (78, 81)",
+          "function_path": "/Command (20,203)/action (78,81)",
+          "start_line": 78,
+          "end_line": 81
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.75,
+            "wcc_quantized": 0.875,
+            "crap": 2.0147518145,
+            "skunk": 1.2360000000000002,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "flag (94, 101)",
+          "function_path": "/Command (20,203)/flag (94,101)",
+          "start_line": 94,
+          "end_line": 101
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.5,
+            "wcc_quantized": 0.75,
+            "crap": 2.0147518145,
+            "skunk": 1.2360000000000002,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "alias (113, 120)",
+          "function_path": "/Command (20,203)/alias (113,120)",
+          "start_line": 113,
+          "end_line": 120
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.8,
+            "wcc_quantized": 0.6,
+            "crap": 3.033191582625,
+            "skunk": 1.8540000000000003,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "run (124, 133)",
+          "function_path": "/Command (20,203)/run (124,133)",
+          "start_line": 124,
+          "end_line": 133
+        },
+        {
+          "metrics": {
+            "wcc_plain": 12.508474576271189,
+            "wcc_quantized": 0.6949152542372882,
+            "crap": 19.1948969745,
+            "skunk": 11.124000000000002,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "flag_help_text (135, 202)",
+          "function_path": "/Command (20,203)/flag_help_text (135,202)",
+          "start_line": 135,
+          "end_line": 202
+        },
+        {
+          "metrics": {
+            "wcc_plain": 5.454545454545454,
+            "wcc_quantized": 0.5454545454545454,
+            "crap": 10.3687953625,
+            "skunk": 6.1800000000000015,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "<anonymous> (145, 168)",
+          "function_path": "/Command (20,203)/flag_help_text (135,202)/<anonymous> (145,168)",
+          "start_line": 145,
+          "end_line": 168
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "<anonymous> (172, 172)",
+          "function_path": "/Command (20,203)/flag_help_text (135,202)/<anonymous> (172,172)",
+          "start_line": 172,
+          "end_line": 172
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 84.55
+          },
+          "function_name": "<anonymous> (149, 149)",
+          "function_path": "/Command (20,203)/flag_help_text (135,202)/<anonymous> (145,168)/<anonymous> (149,149)",
+          "start_line": 149,
+          "end_line": 149
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 18.42105263157895,
+        "wcc_quantized": 0.8872180451127819,
+        "crap": 25.268980546875,
+        "skunk": 7.549999999999997,
+        "is_complex": false,
+        "coverage": 92.45
+      },
+      "file_name": "context.rs",
+      "file_path": "src/context.rs",
+      "start_line": 1,
+      "end_line": 228,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0238095238095235,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "context_test (180, 227)",
+          "function_path": "/context_test (180,227)",
+          "start_line": 180,
+          "end_line": 227
+        },
+        {
+          "metrics": {
+            "wcc_plain": 11.8125,
+            "wcc_quantized": 1.3125,
+            "crap": 18.1394395155,
+            "skunk": 5.435999999999998,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "new (18, 51)",
+          "function_path": "/Context (15,172)/new (18,51)",
+          "start_line": 18,
+          "end_line": 51
+        },
+        {
+          "metrics": {
+            "wcc_plain": 2.769230769230769,
+            "wcc_quantized": 0.9230769230769232,
+            "crap": 3.003873319875,
+            "skunk": 0.9059999999999996,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "result_flag_value (54, 67)",
+          "function_path": "/Context (15,172)/result_flag_value (54,67)",
+          "start_line": 54,
+          "end_line": 67
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.7142857142857143,
+            "wcc_quantized": 0.7142857142857143,
+            "crap": 1.000430368875,
+            "skunk": 0.3019999999999999,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "bool_flag (84, 90)",
+          "function_path": "/Context (15,172)/bool_flag (84,90)",
+          "start_line": 84,
+          "end_line": 90
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.7142857142857143,
+            "wcc_quantized": 0.7142857142857143,
+            "crap": 1.000430368875,
+            "skunk": 0.3019999999999999,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "string_flag (106, 112)",
+          "function_path": "/Context (15,172)/string_flag (106,112)",
+          "start_line": 106,
+          "end_line": 112
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.8571428571428571,
+            "wcc_quantized": 0.8571428571428571,
+            "crap": 1.000430368875,
+            "skunk": 0.3019999999999999,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "int_flag (128, 134)",
+          "function_path": "/Context (15,172)/int_flag (128,134)",
+          "start_line": 128,
+          "end_line": 134
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.7142857142857143,
+            "wcc_quantized": 0.7142857142857143,
+            "crap": 1.000430368875,
+            "skunk": 0.3019999999999999,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "float_flag (150, 156)",
+          "function_path": "/Context (15,172)/float_flag (150,156)",
+          "start_line": 150,
+          "end_line": 156
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "help (169, 171)",
+          "function_path": "/Context (15,172)/help (169,171)",
+          "start_line": 169,
+          "end_line": 171
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "<anonymous> (58, 58)",
+          "function_path": "/Context (15,172)/result_flag_value (54,67)/<anonymous> (58,58)",
+          "start_line": 58,
+          "end_line": 58
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 92.45
+          },
+          "function_name": "<anonymous> (58, 58)",
+          "function_path": "/Context (15,172)/result_flag_value (54,67)/<anonymous> (58,58)/<anonymous> (58,58)",
+          "start_line": 58,
+          "end_line": 58
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0625,
+        "wcc_quantized": 0.03125,
+        "crap": 5.3350760901120005,
+        "skunk": 7.5296,
+        "is_complex": false,
+        "coverage": 5.88
+      },
+      "file_name": "error.rs",
+      "file_path": "src/error.rs",
+      "start_line": 1,
+      "end_line": 35,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 1.833769022528,
+            "skunk": 3.7648,
+            "is_complex": false,
+            "coverage": 5.88
+          },
+          "function_name": "description (26, 34)",
+          "function_path": "/FlagError (25,35)/description (26,34)",
+          "start_line": 26,
+          "end_line": 34
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 1.833769022528,
+            "skunk": 3.7648,
+            "is_complex": false,
+            "coverage": 5.88
+          },
+          "function_name": "fmt (14, 22)",
+          "function_path": "/FlagError (13,23)/fmt (14,22)",
+          "start_line": 14,
+          "end_line": 22
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 17.717277486910994,
+        "wcc_quantized": 0.7382198952879581,
+        "crap": 24.346297872384,
+        "skunk": 8.102399999999998,
+        "is_complex": false,
+        "coverage": 91.56
+      },
+      "file_name": "flag.rs",
+      "file_path": "src/flag.rs",
+      "start_line": 1,
+      "end_line": 261,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.7619047619047619,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "opiton_index (155, 175)",
+          "function_path": "/opiton_index (155,175)",
+          "start_line": 155,
+          "end_line": 175
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "construct_fail_1 (179, 181)",
+          "function_path": "/construct_fail_1 (179,181)",
+          "start_line": 179,
+          "end_line": 181
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "construct_fail_2 (185, 187)",
+          "function_path": "/construct_fail_2 (185,187)",
+          "start_line": 185,
+          "end_line": 187
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "construct_fail_3 (191, 193)",
+          "function_path": "/construct_fail_3 (191,193)",
+          "start_line": 191,
+          "end_line": 193
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.9230769230769232,
+            "wcc_quantized": 0.9230769230769232,
+            "crap": 1.000601211584,
+            "skunk": 0.3375999999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "bool_flag_test (196, 209)",
+          "function_path": "/bool_flag_test (196,209)",
+          "start_line": 196,
+          "end_line": 209
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.9285714285714286,
+            "wcc_quantized": 0.9285714285714286,
+            "crap": 1.000601211584,
+            "skunk": 0.3375999999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "string_flag_test (212, 226)",
+          "function_path": "/string_flag_test (212,226)",
+          "start_line": 212,
+          "end_line": 226
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.9285714285714286,
+            "wcc_quantized": 0.9285714285714286,
+            "crap": 1.000601211584,
+            "skunk": 0.3375999999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "int_flag_test (229, 243)",
+          "function_path": "/int_flag_test (229,243)",
+          "start_line": 229,
+          "end_line": 243
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.9285714285714286,
+            "wcc_quantized": 0.9285714285714286,
+            "crap": 1.000601211584,
+            "skunk": 0.3375999999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "float_flag_test (246, 260)",
+          "function_path": "/float_flag_test (246,260)",
+          "start_line": 246,
+          "end_line": 260
+        },
+        {
+          "metrics": {
+            "wcc_plain": 3.5,
+            "wcc_quantized": 1.1666666666666667,
+            "crap": 3.005410904256,
+            "skunk": 1.0127999999999997,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "new (47, 74)",
+          "function_path": "/Flag (36,148)/new (47,74)",
+          "start_line": 47,
+          "end_line": 74
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "description (86, 89)",
+          "function_path": "/Flag (36,148)/description (86,89)",
+          "start_line": 86,
+          "end_line": 89
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.5,
+            "wcc_quantized": 0.75,
+            "crap": 2.002404846336,
+            "skunk": 0.6751999999999998,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "alias (105, 112)",
+          "function_path": "/Flag (36,148)/alias (105,112)",
+          "start_line": 105,
+          "end_line": 112
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.75,
+            "wcc_quantized": 0.875,
+            "crap": 2.002404846336,
+            "skunk": 0.6751999999999998,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "option_index (115, 122)",
+          "function_path": "/Flag (36,148)/option_index (115,122)",
+          "start_line": 115,
+          "end_line": 122
+        },
+        {
+          "metrics": {
+            "wcc_plain": 7.3478260869565215,
+            "wcc_quantized": 0.5652173913043478,
+            "crap": 13.101604757696,
+            "skunk": 4.388799999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "value (125, 147)",
+          "function_path": "/Flag (36,148)/value (125,147)",
+          "start_line": 125,
+          "end_line": 147
+        },
+        {
+          "metrics": {
+            "wcc_plain": 1.0,
+            "wcc_quantized": 1.0,
+            "crap": 1.000601211584,
+            "skunk": 0.3375999999999999,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "<anonymous> (117, 119)",
+          "function_path": "/Flag (36,148)/option_index (115,122)/<anonymous> (117,119)",
+          "start_line": 117,
+          "end_line": 119
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "<anonymous> (120, 120)",
+          "function_path": "/Flag (36,148)/option_index (115,122)/<anonymous> (120,120)",
+          "start_line": 120,
+          "end_line": 120
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 91.56
+          },
+          "function_name": "<anonymous> (118, 118)",
+          "function_path": "/Flag (36,148)/option_index (115,122)/<anonymous> (117,119)/<anonymous> (118,118)",
+          "start_line": 118,
+          "end_line": 118
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.5,
+        "crap": 0.0,
+        "skunk": 0.0,
+        "is_complex": false,
+        "coverage": 100.0
+      },
+      "file_name": "help.rs",
+      "file_path": "src/help.rs",
+      "start_line": 1,
+      "end_line": 7,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 1.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 100.0
+          },
+          "function_name": "help (4, 6)",
+          "function_path": "/Help (1,7)/help (4,6)",
+          "start_line": 4,
+          "end_line": 6
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.07692307692307693,
+        "crap": 0.0,
+        "skunk": 0.0,
+        "is_complex": false,
+        "coverage": 100.0
+      },
+      "file_name": "lib.rs",
+      "file_path": "src/lib.rs",
+      "start_line": 1,
+      "end_line": 14,
+      "functions": []
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.0,
+        "crap": 72.0,
+        "skunk": 32.0,
+        "is_complex": true,
+        "coverage": 0.0
+      },
+      "file_name": "multiple_app.rs",
+      "file_path": "examples/multiple_app.rs",
+      "start_line": 1,
+      "end_line": 83,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "main (4, 21)",
+          "function_path": "/main (4,21)",
+          "start_line": 4,
+          "end_line": 21
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 72.0,
+            "skunk": 32.0,
+            "is_complex": true,
+            "coverage": 0.0
+          },
+          "function_name": "hello_action (23, 51)",
+          "function_path": "/hello_action (23,51)",
+          "start_line": 23,
+          "end_line": 51
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "hello_command (53, 71)",
+          "function_path": "/hello_command (53,71)",
+          "start_line": 53,
+          "end_line": 71
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "add_action (73, 76)",
+          "function_path": "/add_action (73,76)",
+          "start_line": 73,
+          "end_line": 76
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "add_command (78, 83)",
+          "function_path": "/add_command (78,83)",
+          "start_line": 78,
+          "end_line": 83
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "<anonymous> (74, 74)",
+          "function_path": "/add_action (73,76)/<anonymous> (74,74)",
+          "start_line": 74,
+          "end_line": 74
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "<anonymous> (11, 11)",
+          "function_path": "/main (4,21)/<anonymous> (11,11)",
+          "start_line": 11,
+          "end_line": 11
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.0,
+        "crap": 6.0,
+        "skunk": 8.0,
+        "is_complex": false,
+        "coverage": 0.0
+      },
+      "file_name": "single_app.rs",
+      "file_path": "examples/single_app.rs",
+      "start_line": 1,
+      "end_line": 29,
+      "functions": [
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 0.0,
+            "skunk": 0.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "main (4, 21)",
+          "function_path": "/main (4,21)",
+          "start_line": 4,
+          "end_line": 21
+        },
+        {
+          "metrics": {
+            "wcc_plain": 0.0,
+            "wcc_quantized": 0.0,
+            "crap": 6.0,
+            "skunk": 8.0,
+            "is_complex": false,
+            "coverage": 0.0
+          },
+          "function_name": "action (23, 29)",
+          "function_path": "/action (23,29)",
+          "start_line": 23,
+          "end_line": 29
+        }
+      ]
+    },
+    {
+      "metrics": {
+        "wcc_plain": 35.60456273764259,
+        "wcc_quantized": 0.6758555133079848,
+        "crap": 522.1788154961764,
+        "skunk": 156.79520000000005,
+        "is_complex": false,
+        "coverage": 77.21
+      },
+      "file_name": "PROJECT",
+      "file_path": "-",
+      "start_line": 0,
+      "end_line": 0,
+      "functions": []
+    },
+    {
+      "metrics": {
+        "wcc_plain": 13.582360646986436,
+        "wcc_quantized": 0.4164423383945175,
+        "crap": 29.282270823158665,
+        "skunk": 13.86942222222222,
+        "is_complex": false,
+        "coverage": 561.06
+      },
+      "file_name": "AVG",
+      "file_path": "-",
+      "start_line": 0,
+      "end_line": 0,
+      "functions": []
+    },
+    {
+      "metrics": {
+        "wcc_plain": 66.540415704388,
+        "wcc_quantized": 0.8872180451127819,
+        "crap": 100.90156470643196,
+        "skunk": 44.95679999999998,
+        "is_complex": false,
+        "coverage": 0.0
+      },
+      "file_name": "MAX",
+      "file_path": "-",
+      "start_line": 0,
+      "end_line": 0,
+      "functions": []
+    },
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.0,
+        "crap": 0.0,
+        "skunk": 0.0,
+        "is_complex": false,
+        "coverage": 100.0
+      },
+      "file_name": "MIN",
+      "file_path": "-",
+      "start_line": 0,
+      "end_line": 0,
+      "functions": []
+    }
+  ],
+  "files_ignored": [
+    "./tests/seahorse/src/action.rs"
+  ],
+  "complex_functions": [
+    {
+      "metrics": {
+        "wcc_plain": 0.0,
+        "wcc_quantized": 0.0,
+        "crap": 72.0,
+        "skunk": 32.0,
+        "is_complex": true,
+        "coverage": 0.0
+      },
+      "function_name": "hello_action (23, 51)",
+      "function_path": "/hello_action (23,51)",
+      "start_line": 23,
+      "end_line": 51
+    }
+  ],
+  "project_coverage": 77.21
+}

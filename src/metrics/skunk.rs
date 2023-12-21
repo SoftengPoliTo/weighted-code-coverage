@@ -1,8 +1,9 @@
 use rust_code_analysis::FuncSpace;
 
 use crate::error::*;
-use crate::utility::get_covered_lines;
 use crate::Complexity;
+
+use super::get_covered_lines;
 
 const COMPLEXITY_FACTOR: f64 = 25.0;
 
@@ -35,58 +36,4 @@ pub(crate) fn skunk_nosmells_function(
     } else {
         (comp / COMPLEXITY_FACTOR) * (100. - (100. * cov))
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{grcov::coveralls::Coveralls, utility::get_root};
-    use std::fs;
-
-    const JSON: &str = "./data/data.json";
-    const PREFIX: &str = "../rust-data-structures-main/";
-    const SIMPLE: &str = "../rust-data-structures-main/data/simple_main.rs";
-    const FILE: &str = "./data/simple_main.rs";
-    const COMP: Complexity = Complexity::Cyclomatic;
-    const COGN: Complexity = Complexity::Cognitive;
-
-    #[test]
-    fn test_skunk_cyclomatic() {
-        let file = fs::read_to_string(JSON).unwrap();
-        let covs = Coveralls::new(file, PREFIX).unwrap().0;
-        let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
-        let skunk = skunk_nosmells_function(&root, vec, COMP, None).unwrap();
-        assert_eq!(skunk, 6.4);
-    }
-
-    #[test]
-    fn test_skunk_cognitive() {
-        let file = fs::read_to_string(JSON).unwrap();
-        let covs = Coveralls::new(file, PREFIX).unwrap().0;
-        let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
-        let skunk_cogn = skunk_nosmells_function(&root, vec, COGN, None).unwrap();
-        assert_eq!(skunk_cogn, 4.8);
-    }
-
-    #[test]
-    fn test_skunk_cyclomatic_function() {
-        let file = fs::read_to_string(JSON).unwrap();
-        let covs = Coveralls::new(file, PREFIX).unwrap().0;
-        let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
-        let skunk = skunk_nosmells_function(&root, vec, COMP, None).unwrap();
-        assert_eq!(skunk, 6.4);
-    }
-
-    #[test]
-    fn test_skunk_cognitive_function() {
-        let file = fs::read_to_string(JSON).unwrap();
-        let covs = Coveralls::new(file, PREFIX).unwrap().0;
-        let root = get_root(FILE).unwrap();
-        let vec = covs.get(SIMPLE).unwrap().coverage.as_slice();
-        let skunk_cogn = skunk_nosmells_function(&root, vec, COGN, None).unwrap();
-        assert_eq!(skunk_cogn, 4.8);
-    }
 }

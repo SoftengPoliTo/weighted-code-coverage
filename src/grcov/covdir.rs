@@ -1,16 +1,17 @@
+use serde::Serialize;
 use serde_json::Value;
 use std::{collections::HashMap, path::Path};
 
 use super::get_file_path;
 use crate::error::*;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct CovdirSourceFile {
     pub(crate) coverage: Vec<i32>,
     pub(crate) coverage_percent: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct Covdir {
     pub(crate) source_files: HashMap<String, CovdirSourceFile>,
     pub(crate) total_coverage: f64,
@@ -133,4 +134,56 @@ fn get_total_coverage(covdir_json: &Value) -> Result<f64> {
         .get("coveragePercent")
         .and_then(|cp| cp.as_f64())
         .ok_or(Error::Conversion)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::Covdir;
+    use std::fs;
+
+    const COVDIR_PATH: &str = "./tests/grcov_files/grcov_covdir.json";
+
+    #[test]
+    fn test_covdir() {
+        let json = fs::read_to_string(COVDIR_PATH).unwrap();
+        let covdir = Covdir::new(json, "./project/path/").unwrap();
+
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(covdir, @r###"
+            {
+              "source_files": {
+                "./project/path/src/app.rs": {
+                  "coverage": [
+                    -1,
+                    -1
+                  ],
+                  "coverage_percent": 86.62
+                },
+                "./project/path/src/inner_module/inner_module_file.rs": {
+                  "coverage": [
+                    -1,
+                    -1
+                  ],
+                  "coverage_percent": 0.0
+                },
+                "./project/path/src/inner_module/mod.rs": {
+                  "coverage": [
+                    0,
+                    -1
+                  ],
+                  "coverage_percent": 0.0
+                },
+                "./project/path/src/lib.rs": {
+                  "coverage": [
+                    2
+                  ],
+                  "coverage_percent": 100.0
+                }
+              },
+              "total_coverage": 77.21
+            }
+            "###);
+        });
+    }
 }

@@ -2,15 +2,17 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use crossbeam::channel::{Receiver, Sender};
+use rust_code_analysis::{FuncSpace, SpaceKind};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
+use crate::concurrent::Visit;
 use crate::grcov::covdir::Covdir;
 use crate::grcov::coveralls::Coveralls;
-use crate::utility::*;
+use crate::metrics::{get_covered_lines, get_root};
 use crate::{error::*, Complexity, Sort};
 
-use super::{ConsumerOutputWcc, Metrics, Wcc};
+use super::{get_cumulative_values, get_project_metrics, ConsumerOutputWcc, Metrics, Tree, Wcc};
 
 // Struct with all the metrics computed for the root
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
@@ -513,288 +515,25 @@ impl Wcc for CovdirFunctionsWcc {
     }
 }
 
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::{
-        utility::{chunk_vector, compare_float, get_prefix},
-        Complexity,
-    };
-    use std::fs;
-
-    const JSON: &str = "./data/seahorse/seahorse.json";
-    const COVDIR: &str = "./data/seahorse/covdir.json";
-    const PROJECT: &str = "./data/seahorse/";
-    const IGNORED: &str = "./data/seahorse/src/action.rs";
-
-    fn get_test_data<P: AsRef<Path>>(
-        files_path: P,
-        json_path: P,
-    ) -> (String, usize, Vec<Vec<String>>, String) {
-        let files = read_files(files_path.as_ref()).unwrap();
-        let json = fs::read_to_string(json_path).unwrap();
-        let prefix = get_prefix(&files_path).unwrap();
-        let chunks = chunk_vector(files, 8);
-        let project_path = files_path.as_ref().to_str().unwrap().to_owned();
-
-        (json, prefix, chunks, project_path)
-    }
-
-    #[test]
-    fn test_metrics_coveralls_cyclomatic() {
-        let json_path = Path::new(JSON);
-        let project = Path::new(PROJECT);
-        let ignored = Path::new(IGNORED);
-        let (json, prefix, chunks, project_path) = get_test_data(project, json_path);
-        let coveralls = Coveralls::new(json, project_path).unwrap();
-
-        let (metrics, files_ignored, _, _) = CoverallsFunctionsWcc {
-            chunks,
-            coveralls,
-            metric: Complexity::Cyclomatic,
-            prefix,
-            thresholds: vec![30., 1.5, 35., 30.],
-            files_ignored: Mutex::new(Vec::new()),
-            functions_metrics: Mutex::new(Vec::new()),
-            sort_by: Sort::WccPlain,
+// Get all spaces stating from root.
+// It does not contain the root
+pub(crate) fn get_spaces(root: &FuncSpace) -> Result<Vec<(&FuncSpace, String)>> {
+    let mut stack = vec![(root, String::new())];
+    let mut result = Vec::new();
+    while let Some((space, path)) = stack.pop() {
+        for s in &space.spaces {
+            let p = format!(
+                "{}/{} ({},{})",
+                path,
+                s.name.as_ref().ok_or(Error::PathConversion)?,
+                s.start_line,
+                s.end_line
+            );
+            stack.push((s, p.to_string()));
+            if s.kind == SpaceKind::Function {
+                result.push((s, p));
+            }
         }
-        .run(7)
-        .unwrap();
-
-        let ma = &metrics[7].metrics;
-        let h = &metrics[5].metrics;
-        let app_root = &metrics[0].metrics;
-        let app_app_new_only_test = &metrics[0].functions[0].metrics;
-        let cont_root = &metrics[2].metrics;
-        let cont_bool_flag = &metrics[2].functions[3].metrics;
-
-        assert_eq!(files_ignored.len(), 1);
-        assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.wcc_plain, 0.));
-        assert!(compare_float(ma.wcc_quantized, 0.));
-        assert!(compare_float(ma.crap, 552.));
-        assert!(compare_float(ma.skunk, 92.));
-        assert!(compare_float(h.wcc_plain, 1.5));
-        assert!(compare_float(h.wcc_quantized, 0.5));
-        assert!(compare_float(h.crap, 3.));
-        assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.wcc_plain, 79.21478060046189));
-        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
-        assert!(compare_float(app_root.crap, 123.97408556537728));
-        assert!(compare_float(app_root.skunk, 53.53535353535352));
-        assert!(compare_float(cont_root.wcc_plain, 24.31578947368421));
-        assert!(compare_float(cont_root.wcc_quantized, 0.7368421052631579));
-        assert!(compare_float(cont_root.crap, 33.468144844401756));
-        assert!(compare_float(cont_root.skunk, 9.9622641509434));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_plain,
-            1.1111111111111112
-        ));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_quantized,
-            1.1111111111111112
-        ));
-        assert!(compare_float(app_app_new_only_test.crap, 1.0));
-        assert!(compare_float(app_app_new_only_test.skunk, 0.000));
-        assert!(compare_float(cont_bool_flag.wcc_plain, 2.142857142857143));
-        assert!(compare_float(
-            cont_bool_flag.wcc_quantized,
-            0.7142857142857143
-        ));
-        assert!(compare_float(cont_bool_flag.crap, 3.0416666666666665));
-        assert!(compare_float(cont_bool_flag.skunk, 1.999999999999999));
     }
-
-    #[test]
-    fn test_metrics_coveralls_cognitive() {
-        let json_path = Path::new(JSON);
-        let project = Path::new(PROJECT);
-        let ignored = Path::new(IGNORED);
-        let (json, prefix, chunks, project_path) = get_test_data(project, json_path);
-        let coveralls = Coveralls::new(json, project_path).unwrap();
-
-        let (metrics, files_ignored, _, _) = CoverallsFunctionsWcc {
-            chunks,
-            coveralls,
-            metric: Complexity::Cognitive,
-            prefix,
-            thresholds: vec![30., 1.5, 35., 30.],
-            files_ignored: Mutex::new(Vec::new()),
-            functions_metrics: Mutex::new(Vec::new()),
-            sort_by: Sort::WccPlain,
-        }
-        .run(7)
-        .unwrap();
-
-        let ma = &metrics[7].metrics;
-        let h = &metrics[5].metrics;
-        let app_root = &metrics[0].metrics;
-        let app_app_new_only_test = &metrics[0].functions[0].metrics;
-        let cont_root = &metrics[2].metrics;
-        let cont_bool_flag = &metrics[2].functions[3].metrics;
-
-        assert_eq!(files_ignored.len(), 1);
-        assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.wcc_plain, 0.));
-        assert!(compare_float(ma.wcc_quantized, 0.));
-        assert!(compare_float(ma.crap, 72.));
-        assert!(compare_float(ma.skunk, 32.));
-        assert!(compare_float(h.wcc_plain, 0.));
-        assert!(compare_float(h.wcc_quantized, 0.5));
-        assert!(compare_float(h.crap, 0.));
-        assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.wcc_plain, 66.540415704388));
-        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
-        assert!(compare_float(app_root.crap, 100.91611477493021));
-        assert!(compare_float(app_root.skunk, 44.969696969696955));
-        assert!(compare_float(cont_root.wcc_plain, 18.42105263157895));
-        assert!(compare_float(cont_root.wcc_quantized, 0.8872180451127819));
-        assert!(compare_float(cont_root.crap, 25.268678170570336));
-        assert!(compare_float(cont_root.skunk, 7.547169811320757));
-        assert!(compare_float(app_app_new_only_test.wcc_plain, 0.0));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_quantized,
-            1.1111111111111112
-        ));
-        assert!(compare_float(app_app_new_only_test.crap, 0.0));
-        assert!(compare_float(app_app_new_only_test.skunk, 0.000));
-        assert!(compare_float(cont_bool_flag.wcc_plain, 0.7142857142857143));
-        assert!(compare_float(
-            cont_bool_flag.wcc_quantized,
-            0.7142857142857143
-        ));
-        assert!(compare_float(cont_bool_flag.crap, 1.0046296296296295));
-        assert!(compare_float(cont_bool_flag.skunk, 0.6666666666666663));
-    }
-
-    #[test]
-    fn test_metrics_covdir_cyclomatic() {
-        let json_path = Path::new(COVDIR);
-        let project = Path::new(PROJECT);
-        let ignored = Path::new(IGNORED);
-        let (json, prefix, chunks, project_path) = get_test_data(project, json_path);
-        let covdir = Covdir::new(json, project_path).unwrap();
-
-        let (metrics, files_ignored, _, _) = CovdirFunctionsWcc {
-            chunks,
-            covdir,
-            metric: Complexity::Cyclomatic,
-            prefix,
-            thresholds: vec![30., 1.5, 35., 30.],
-            files_ignored: Mutex::new(Vec::new()),
-            functions_metrics: Mutex::new(Vec::new()),
-            sort_by: Sort::WccPlain,
-        }
-        .run(7)
-        .unwrap();
-
-        let ma = &metrics[7].metrics;
-        let h = &metrics[5].metrics;
-        let app_root = &metrics[0].metrics;
-        let app_app_new_only_test = &metrics[0].functions[0].metrics;
-        let cont_root = &metrics[2].metrics;
-        let cont_bool_flag = &metrics[2].functions[3].metrics;
-
-        assert_eq!(files_ignored.len(), 1);
-        assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.wcc_plain, 0.));
-        assert!(compare_float(ma.wcc_quantized, 0.));
-        assert!(compare_float(ma.crap, 552.));
-        assert!(compare_float(ma.skunk, 92.));
-        assert!(compare_float(h.wcc_plain, 1.5));
-        assert!(compare_float(h.wcc_quantized, 0.5));
-        assert!(compare_float(h.crap, 3.));
-        assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.wcc_plain, 79.21478060046189));
-        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
-        assert!(compare_float(app_root.crap, 123.95346471999996));
-        assert!(compare_float(app_root.skunk, 53.51999999999998));
-        assert!(compare_float(cont_root.wcc_plain, 24.31578947368421));
-        assert!(compare_float(cont_root.wcc_quantized, 0.7368421052631579));
-        assert!(compare_float(cont_root.crap, 33.468671704875));
-        assert!(compare_float(cont_root.skunk, 9.965999999999998));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_plain,
-            1.1111111111111112
-        ));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_quantized,
-            1.1111111111111112
-        ));
-        assert!(compare_float(app_app_new_only_test.crap, 1.002395346472));
-        assert!(compare_float(
-            app_app_new_only_test.skunk,
-            0.5351999999999998
-        ));
-        assert!(compare_float(cont_bool_flag.wcc_plain, 2.142857142857143));
-        assert!(compare_float(
-            cont_bool_flag.wcc_quantized,
-            0.7142857142857143
-        ));
-        assert!(compare_float(cont_bool_flag.crap, 3.003873319875));
-        assert!(compare_float(cont_bool_flag.skunk, 0.9059999999999996));
-    }
-
-    #[test]
-    fn test_metrics_covdir_cognitive() {
-        let json_path = Path::new(COVDIR);
-        let project = Path::new(PROJECT);
-        let ignored = Path::new(IGNORED);
-        let (json, prefix, chunks, project_path) = get_test_data(project, json_path);
-        let covdir = Covdir::new(json, project_path).unwrap();
-
-        let (metrics, files_ignored, _, _) = CovdirFunctionsWcc {
-            chunks,
-            covdir,
-            metric: Complexity::Cognitive,
-            prefix,
-            thresholds: vec![30., 1.5, 35., 30.],
-            files_ignored: Mutex::new(Vec::new()),
-            functions_metrics: Mutex::new(Vec::new()),
-            sort_by: Sort::WccPlain,
-        }
-        .run(7)
-        .unwrap();
-
-        let ma = &metrics[7].metrics;
-        let h = &metrics[5].metrics;
-        let app_root = &metrics[0].metrics;
-        let app_app_new_only_test = &metrics[0].functions[0].metrics;
-        let cont_root = &metrics[2].metrics;
-        let cont_bool_flag = &metrics[2].functions[3].metrics;
-
-        assert_eq!(files_ignored.len(), 1);
-        assert!(files_ignored[0] == ignored.as_os_str().to_str().unwrap());
-        assert!(compare_float(ma.wcc_plain, 0.));
-        assert!(compare_float(ma.wcc_quantized, 0.));
-        assert!(compare_float(ma.crap, 72.));
-        assert!(compare_float(ma.skunk, 32.));
-        assert!(compare_float(h.wcc_plain, 0.));
-        assert!(compare_float(h.wcc_quantized, 0.5));
-        assert!(compare_float(h.crap, 0.));
-        assert!(compare_float(h.skunk, 0.));
-        assert!(compare_float(app_root.wcc_plain, 66.540415704388));
-        assert!(compare_float(app_root.wcc_quantized, 0.792147806004619));
-        assert!(compare_float(app_root.crap, 100.90156470643197));
-        assert!(compare_float(app_root.skunk, 44.95679999999998));
-        assert!(compare_float(cont_root.wcc_plain, 18.42105263157895));
-        assert!(compare_float(cont_root.wcc_quantized, 0.8872180451127819));
-        assert!(compare_float(cont_root.crap, 25.268980546875));
-        assert!(compare_float(cont_root.skunk, 7.549999999999997));
-        assert!(compare_float(app_app_new_only_test.wcc_plain, 0.0));
-        assert!(compare_float(
-            app_app_new_only_test.wcc_quantized,
-            1.1111111111111112
-        ));
-        assert!(compare_float(app_app_new_only_test.crap, 0.0));
-        assert!(compare_float(app_app_new_only_test.skunk, 0.000));
-        assert!(compare_float(cont_bool_flag.wcc_plain, 0.7142857142857143));
-        assert!(compare_float(
-            cont_bool_flag.wcc_quantized,
-            0.7142857142857143
-        ));
-        assert!(compare_float(cont_bool_flag.crap, 1.000430368875));
-        assert!(compare_float(cont_bool_flag.skunk, 0.3019999999999999));
-    }
+    Ok(result)
 }

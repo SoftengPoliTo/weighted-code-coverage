@@ -6,11 +6,11 @@ use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
 use weighted_code_coverage::{
-    Complexity, JsonFormat, Mode, OutputFormat, Sort, Thresholds, WccRunner,
+    Complexity, GrcovFormat, Mode, OutputFormat, Sort, Thresholds, WccRunner,
 };
 
 const fn thresholds_long_help() -> &'static str {
-    "Set four  thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n
+    "Set the four thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n
     All the values must be floats\n
     All Thresholds has 0 as minimum value, thus no threshold at all.\n
     WCC PLAIN has a max threshold of COMP*SLOC/PLOC\n
@@ -19,7 +19,7 @@ const fn thresholds_long_help() -> &'static str {
     SKUNK has a max threshold of COMP/25\n"
 }
 
-fn select_json_format(coveralls: Option<JsonFormat>, covdir: Option<JsonFormat>) -> JsonFormat {
+fn select_json_format(coveralls: Option<GrcovFormat>, covdir: Option<GrcovFormat>) -> GrcovFormat {
     match (coveralls, covdir) {
         (Some(coveralls), None) => Some(coveralls),
         (None, Some(covdir)) => Some(covdir),
@@ -37,7 +37,7 @@ where
     U::Err: Error + Send + Sync + 'static,
 {
     let pos = s
-        .find('=')
+        .find(':')
         .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{s}`"))?;
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
@@ -56,36 +56,36 @@ pub(crate) struct CargoArgs {
 #[clap(author, version, about)]
 pub(crate) struct Args {
     /// Path of the project folder
-    #[clap(long = "path_file", value_hint = clap::ValueHint::DirPath)]
-    pub(crate) path_file: PathBuf,
+    #[clap(long, required = true, value_hint = clap::ValueHint::DirPath)]
+    pub(crate) project_path: PathBuf,
+    /// Path of the grcov json file with coveralls format
+    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
+    coveralls: Option<GrcovFormat>,
+    /// Path of the grcov json file with covdir format
+    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::covdir_parser, value_hint = clap::ValueHint::DirPath)]
+    covdir: Option<GrcovFormat>,
     /// Choose complexity metric to use along with thresholds values
-    #[arg(short, value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
+    #[clap(long, short = 'c', default_value = "cyclomatic:50.0,0.7,65.0,45.0", value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
     complexity: (Complexity, Thresholds),
     /// Number of threads to use for concurrency
-    #[clap(default_value_t = 2)]
-    n_threads: usize,
-    /// Path of the grcov json file with coveralls format
-    #[clap(long, conflicts_with = "covdir", value_parser = JsonFormat::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
-    coveralls: Option<JsonFormat>,
-    /// Path of the grcov json file with covdir format
-    #[clap(long, conflicts_with = "coveralls", value_parser = JsonFormat::covdir_parser, value_hint = clap::ValueHint::DirPath)]
-    covdir: Option<JsonFormat>,
+    #[clap(long, short = 't', default_value_t = (rayon::current_num_threads() - 1).max(1))]
+    threads: usize,
     /// Choose mode to use for analysis
-    #[clap(long, short = 'm', default_value= Mode::default_value(), value_parser = PossibleValuesParser::new(Mode::all())
+    #[clap(long, short = 'm', default_value = Mode::default_value(), value_parser = PossibleValuesParser::new(Mode::all())
         .map(|s| s.parse::<Mode>().unwrap()))]
     mode: Mode,
     /// Sort complex value with the chosen metric
-    #[clap(long, short, default_value = Sort::default_value(), value_parser = PossibleValuesParser::new(Sort::all())
+    #[clap(long, short = 's', default_value = Sort::default_value(), value_parser = PossibleValuesParser::new(Sort::all())
         .map(|s| s.parse::<Sort>().unwrap()))]
     sort: Sort,
     /// Output file format
-    #[clap(long, short, default_value = OutputFormat::default_value(), value_parser = PossibleValuesParser::new(OutputFormat::all())
+    #[clap(long, default_value = OutputFormat::default_value(), value_parser = PossibleValuesParser::new(OutputFormat::all())
         .map(|s| s.parse::<OutputFormat>().unwrap()))]
     output_format: OutputFormat,
     /// Path of the output file
-    #[clap(long = "output_path", value_hint = clap::ValueHint::DirPath)]
+    #[clap(long, default_value = "./wcc_output.json", value_hint = clap::ValueHint::DirPath)]
     output_path: PathBuf,
-    #[clap(short, long, global = true)]
+    #[clap(long, short = 'v', global = true)]
     verbose: bool,
 }
 
@@ -110,12 +110,12 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
 
     WccRunner::new()
         .complexity(args.complexity)
-        .n_threads(args.n_threads.max(1))
-        .json_format(select_json_format(args.coveralls, args.covdir))
+        .n_threads(args.threads.max(1))
+        .grcov_format(select_json_format(args.coveralls, args.covdir))
         .mode(args.mode)
         .sort_by(args.sort)
         .output_format(args.output_format)
         .output_path(args.output_path)
-        .run(args.path_file)
+        .run(args.project_path)
         .unwrap();
 }

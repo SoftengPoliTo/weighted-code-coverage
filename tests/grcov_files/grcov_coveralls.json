@@ -1,0 +1,43 @@
+{
+  "git": {
+    "branch": "master",
+    "head": {
+      "author_email": "",
+      "author_name": "",
+      "committer_email": "",
+      "committer_name": "",
+      "id": "",
+      "message": ""
+    },
+    "remotes": [
+      {
+        "name": "origin",
+        "url": "https://github.com/ksk001100/seahorse.git"
+      }
+    ]
+  },
+  "parallel": false,
+  "repo_token": "YOUR_COVERALLS_TOKEN",
+  "service_number": "",
+  "service_pull_request": "",
+  "source_files": [
+    {
+      "branches": [],
+      "coverage": [null, 0],
+      "name": "examples/single_app.rs",
+      "source_digest": "75321f0e3839a147683a139c149eed83"
+    },
+    {
+      "branches": [],
+      "coverage": [null, 5],
+      "name": "src/app.rs",
+      "source_digest": "4829c8c7488ca36ddc47fb973eb1994a"
+    },
+    {
+      "branches": [],
+      "coverage": [25, null],
+      "name": "src/error.rs",
+      "source_digest": "b6f11c4375c5bca5230a315cdbec523e"
+    }
+  ]
+}

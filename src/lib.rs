@@ -20,9 +20,9 @@ mod error;
 mod grcov;
 mod metrics;
 mod output;
-mod utility;
 
 use std::{
+    ffi::OsStr,
     fmt, fs,
     io::ErrorKind,
     path::{Path, PathBuf},
@@ -38,17 +38,15 @@ use concurrent::{
 use error::{Error, Result};
 use grcov::{covdir::Covdir, coveralls::Coveralls};
 use output::{
-    get_metrics_output, get_metrics_output_function, print_metrics_to_csv,
-    print_metrics_to_csv_function, print_metrics_to_html, print_metrics_to_html_function,
-    print_metrics_to_json, print_metrics_to_json_function,
+    get_metrics_output, get_metrics_output_function, print_metrics_to_html,
+    print_metrics_to_html_function, print_metrics_to_json, print_metrics_to_json_function,
 };
-use utility::{chunk_vector, get_prefix, read_files};
 
 #[derive(Debug)]
 struct Parameters<P: AsRef<Path> + Default> {
     complexity: (Complexity, Thresholds),
     n_threads: usize,
-    json_format: JsonFormat,
+    grcov_format: GrcovFormat,
     mode: Mode,
     sort_by: Sort,
     output_format: OutputFormat,
@@ -63,7 +61,7 @@ impl<P: AsRef<Path> + Default> Default for Parameters<P> {
                 Thresholds(vec![35.0, 1.5, 35.0, 30.0]),
             ),
             n_threads: (rayon::current_num_threads() - 1).max(1),
-            json_format: JsonFormat::Coveralls(PathBuf::from("")),
+            grcov_format: GrcovFormat::Coveralls(PathBuf::default()),
             mode: Mode::default(),
             sort_by: Sort::default(),
             output_format: OutputFormat::default(),
@@ -102,8 +100,8 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
     }
 
     /// Sets format of the input grcov json file and its path.
-    pub fn json_format(mut self, json_format: JsonFormat) -> Self {
-        self.0.json_format = json_format;
+    pub fn grcov_format(mut self, grcov_format: GrcovFormat) -> Self {
+        self.0.grcov_format = grcov_format;
         self
     }
 
@@ -138,7 +136,7 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
         }
 
         let files = read_files(&project_path)?;
-        let grcov_json = fs::read_to_string(self.0.json_format.file_path())?;
+        let grcov_json = fs::read_to_string(self.0.grcov_format.file_path())?;
         let prefix = get_prefix(&project_path)?;
         let chunks = chunk_vector(files, self.0.n_threads);
 
@@ -165,8 +163,8 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
         chunks: Vec<Vec<String>>,
         project_path: T,
     ) -> Result<FilesWccOutput> {
-        let output = match self.0.json_format {
-            JsonFormat::Coveralls(_) => CoverallsFilesWcc::new(
+        let output = match self.0.grcov_format {
+            GrcovFormat::Coveralls(_) => CoverallsFilesWcc::new(
                 chunks,
                 Coveralls::new(grcov_json, project_path)?,
                 self.0.complexity.0,
@@ -175,7 +173,7 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
                 self.0.sort_by,
             )
             .run(self.0.n_threads)?,
-            JsonFormat::Covdir(_) => CovdirFilesWcc::new(
+            GrcovFormat::Covdir(_) => CovdirFilesWcc::new(
                 chunks,
                 Covdir::new(grcov_json, project_path)?,
                 self.0.complexity.0,
@@ -196,8 +194,8 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
         chunks: Vec<Vec<String>>,
         project_path: T,
     ) -> Result<FunctionsWccOutput> {
-        let output = match self.0.json_format {
-            JsonFormat::Coveralls(_) => CoverallsFunctionsWcc::new(
+        let output = match self.0.grcov_format {
+            GrcovFormat::Coveralls(_) => CoverallsFunctionsWcc::new(
                 chunks,
                 Coveralls::new(grcov_json, project_path)?,
                 self.0.complexity.0,
@@ -206,7 +204,7 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
                 self.0.sort_by,
             )
             .run(self.0.n_threads)?,
-            JsonFormat::Covdir(_) => CovdirFunctionsWcc::new(
+            GrcovFormat::Covdir(_) => CovdirFunctionsWcc::new(
                 chunks,
                 Covdir::new(grcov_json, project_path)?,
                 self.0.complexity.0,
@@ -232,13 +230,6 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
                 &files_ignored,
                 self.0.output_path.as_ref(),
                 project_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
-            OutputFormat::Csv => print_metrics_to_csv(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
                 project_coverage,
                 self.0.sort_by,
             )?,
@@ -271,13 +262,6 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
                 project_coverage,
                 self.0.sort_by,
             )?,
-            OutputFormat::Csv => print_metrics_to_csv_function(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
             OutputFormat::Html => print_metrics_to_html_function(
                 &metrics,
                 &files_ignored,
@@ -296,28 +280,87 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
 type FilesWccOutput = (Vec<FileMetrics>, Vec<String>, Vec<FileMetrics>, f64);
 type FunctionsWccOutput = (Vec<RootMetrics>, Vec<String>, Vec<FunctionMetrics>, f64);
 
+#[inline]
+pub(crate) fn get_prefix<A: AsRef<Path>>(files_path: A) -> Result<usize> {
+    Ok(files_path
+        .as_ref()
+        .to_str()
+        .ok_or(Error::PathConversion)?
+        .to_string()
+        .len())
+}
+
+// Chunks the vector of files in multiple chunks.
+// Each chunk will contain a number of files equal, or very close, to `n_threads`.
+pub(crate) fn chunk_vector(vec: Vec<String>, n_threads: usize) -> Vec<Vec<String>> {
+    let chunks = vec.chunks((vec.len() / n_threads).max(1));
+    chunks
+        .map(|chunk| chunk.iter().map(|c| c.into()).collect::<Vec<String>>())
+        .collect::<Vec<Vec<String>>>()
+}
+
+// Check all possible valid extensions
+#[inline(always)]
+fn check_ext(ext: &OsStr) -> bool {
+    ext == "rs"
+        || ext == "cpp"
+        || ext == "c"
+        || ext == "js"
+        || ext == "java"
+        || ext == "py"
+        || ext == "tsx"
+        || ext == "ts"
+        || ext == "jsm"
+}
+
+// This function read all  the files in the project folder
+// Returns all the source files, ignoring the other files or an error in case of problems
+pub(crate) fn read_files<A: AsRef<Path>>(files_path: A) -> Result<Vec<String>> {
+    let mut vec = vec![];
+    let mut first = PathBuf::new();
+    first.push(files_path);
+    let mut stack = vec![first];
+    while let Some(path) = stack.pop() {
+        if path.is_dir() {
+            let mut paths = fs::read_dir(&path)?;
+            paths.try_for_each(|p| -> Result<()> {
+                let pa = p?.path();
+                stack.push(pa);
+                Ok(())
+            })?;
+        } else {
+            let ext = path.extension();
+
+            if ext.is_some() && check_ext(ext.ok_or(Error::PathConversion)?) {
+                vec.push(path.display().to_string().replace('\\', "/"));
+            }
+        }
+    }
+    Ok(vec)
+}
+
 /// Availabe grcov json file formats
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum JsonFormat {
+pub enum GrcovFormat {
     /// Coveralls.
     Coveralls(PathBuf),
     /// Covdir.
     Covdir(PathBuf),
 }
 
-impl JsonFormat {
+impl GrcovFormat {
     /// Parses cli coveralls argument.
     pub fn coveralls_parser(
         coveralls_file: &str,
-    ) -> std::result::Result<JsonFormat, Box<std::io::Error>> {
-        Ok(JsonFormat::Coveralls(PathBuf::from(coveralls_file)))
+    ) -> std::result::Result<GrcovFormat, Box<std::io::Error>> {
+        Ok(GrcovFormat::Coveralls(PathBuf::from(coveralls_file)))
     }
 
     /// Parses cli covdir argument.
     pub fn covdir_parser(
         covdir_file: &str,
-    ) -> std::result::Result<JsonFormat, Box<std::io::Error>> {
-        Ok(JsonFormat::Covdir(PathBuf::from(covdir_file)))
+    ) -> std::result::Result<GrcovFormat, Box<std::io::Error>> {
+        Ok(GrcovFormat::Covdir(PathBuf::from(covdir_file)))
     }
 
     fn file_path(&self) -> &PathBuf {
@@ -376,7 +419,7 @@ impl Complexity {
 
 /// Thresholds
 #[derive(Debug, Clone, Default)]
-pub struct Thresholds(Vec<f64>);
+pub struct Thresholds(pub Vec<f64>);
 
 impl FromStr for Thresholds {
     type Err = std::io::Error;
@@ -483,8 +526,6 @@ pub enum OutputFormat {
     /// JSON
     #[default]
     Json,
-    /// CSV
-    Csv,
     /// HTML
     Html,
 }
@@ -495,7 +536,6 @@ impl FromStr for OutputFormat {
     fn from_str(output_format: &str) -> std::result::Result<Self, Self::Err> {
         match output_format {
             "json" => Ok(OutputFormat::Json),
-            "csv" => Ok(OutputFormat::Csv),
             "html" => Ok(OutputFormat::Html),
             _ => Err(std::io::Error::new(
                 ErrorKind::Other,
@@ -508,7 +548,7 @@ impl FromStr for OutputFormat {
 impl OutputFormat {
     /// All output formats.
     pub const fn all() -> &'static [&'static str] {
-        &["json", "csv", "html"]
+        &["json", "html"]
     }
 
     /// Default output format.
