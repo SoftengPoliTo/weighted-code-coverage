@@ -19,7 +19,10 @@ const fn thresholds_long_help() -> &'static str {
     SKUNK has a max threshold of COMP/25\n"
 }
 
-fn select_json_format(coveralls: Option<GrcovFormat>, covdir: Option<GrcovFormat>) -> GrcovFormat {
+fn select_json_format(
+    coveralls: Option<GrcovFormat<PathBuf>>,
+    covdir: Option<GrcovFormat<PathBuf>>,
+) -> GrcovFormat<PathBuf> {
     match (coveralls, covdir) {
         (Some(coveralls), None) => Some(coveralls),
         (None, Some(covdir)) => Some(covdir),
@@ -59,11 +62,11 @@ pub(crate) struct Args {
     #[clap(long, required = true, value_hint = clap::ValueHint::DirPath)]
     pub(crate) project_path: PathBuf,
     /// Path of the grcov json file with coveralls format
-    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
-    coveralls: Option<GrcovFormat>,
+    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::<&str>::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
+    coveralls: Option<GrcovFormat<PathBuf>>,
     /// Path of the grcov json file with covdir format
-    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::covdir_parser, value_hint = clap::ValueHint::DirPath)]
-    covdir: Option<GrcovFormat>,
+    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::<&str>::covdir_parser, value_hint = clap::ValueHint::DirPath)]
+    covdir: Option<GrcovFormat<PathBuf>>,
     /// Choose complexity metric to use along with thresholds values
     #[clap(long, short = 'c', default_value = "cyclomatic:50.0,0.7,65.0,45.0", value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
     complexity: (Complexity, Thresholds),
@@ -83,7 +86,7 @@ pub(crate) struct Args {
         .map(|s| s.parse::<OutputFormat>().unwrap()))]
     output_format: OutputFormat,
     /// Path of the output file
-    #[clap(long, default_value = "./wcc_output.json", value_hint = clap::ValueHint::DirPath)]
+    #[clap(long, value_hint = clap::ValueHint::DirPath)]
     output_path: PathBuf,
     #[clap(long, short = 'v', global = true)]
     verbose: bool,
@@ -110,7 +113,7 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
 
     WccRunner::new()
         .complexity(args.complexity)
-        .n_threads(args.threads.max(1))
+        .n_threads(args.threads)
         .grcov_format(select_json_format(args.coveralls, args.covdir))
         .mode(args.mode)
         .sort_by(args.sort)

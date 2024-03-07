@@ -20,9 +20,10 @@ tera = "1.17.1"
 chrono = { version = "0.4.31", features = ["serde"] }
 rayon = "1.8.0"
 cargo_metadata = "^0.18"
+minijinja = { version = "^1.0", features = ["loader"] }
 
 [dev-dependencies]
-insta = { version = "1.34.0", features = ["json"] }
+insta = { version = "1.34.0", features = ["json", "yaml"] }
 
 [profile.release]
 opt-level = 3

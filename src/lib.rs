@@ -41,19 +41,20 @@ use output::{
     get_metrics_output, get_metrics_output_function, print_metrics_to_html,
     print_metrics_to_html_function, print_metrics_to_json, print_metrics_to_json_function,
 };
+use serde::Serialize;
 
 #[derive(Debug)]
-struct Parameters<P: AsRef<Path> + Default> {
+struct Parameters<A: AsRef<Path> + Default, B: AsRef<Path> + Default> {
     complexity: (Complexity, Thresholds),
     n_threads: usize,
-    grcov_format: GrcovFormat,
+    grcov_format: GrcovFormat<A>,
     mode: Mode,
     sort_by: Sort,
     output_format: OutputFormat,
-    output_path: P,
+    output_path: Option<B>,
 }
 
-impl<P: AsRef<Path> + Default> Default for Parameters<P> {
+impl<A: AsRef<Path> + Default, B: AsRef<Path> + Default> Default for Parameters<A, B> {
     fn default() -> Self {
         Self {
             complexity: (
@@ -61,13 +62,28 @@ impl<P: AsRef<Path> + Default> Default for Parameters<P> {
                 Thresholds(vec![35.0, 1.5, 35.0, 30.0]),
             ),
             n_threads: (rayon::current_num_threads() - 1).max(1),
-            grcov_format: GrcovFormat::Coveralls(PathBuf::default()),
+            grcov_format: GrcovFormat::Coveralls(A::default()),
             mode: Mode::default(),
             sort_by: Sort::default(),
             output_format: OutputFormat::default(),
-            output_path: P::default(),
+            output_path: None,
         }
     }
+}
+
+// Output in *files* mode.
+type FilesWccOutput = (Vec<FileMetrics>, Vec<String>, Vec<FileMetrics>, f64);
+
+// Output in *functions* mode.
+type FunctionsWccOutput = (Vec<RootMetrics>, Vec<String>, Vec<FunctionMetrics>, f64);
+
+/// WccOutput
+#[derive(Serialize)]
+pub enum WccOutput {
+    /// Files
+    Files(FilesWccOutput),
+    /// Functions
+    Functions(FunctionsWccOutput),
 }
 
 /// Run weighted code coverage for a project.
@@ -79,9 +95,9 @@ impl<P: AsRef<Path> + Default> Default for Parameters<P> {
 /// * *files* as default analysis mode.
 /// * *wcc plain* as default metric that will be used to sort the output.
 #[derive(Debug, Default)]
-pub struct WccRunner<P: AsRef<Path> + Default>(Parameters<P>);
+pub struct WccRunner<A: AsRef<Path> + Default, B: AsRef<Path> + Default>(Parameters<A, B>);
 
-impl<P: AsRef<Path> + Default> WccRunner<P> {
+impl<A: AsRef<Path> + Default, B: AsRef<Path> + Default> WccRunner<A, B> {
     /// Creates a new `WccRunner` instance.
     pub fn new() -> Self {
         Self::default()
@@ -95,12 +111,12 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
 
     /// Sets number of threads that will be used.
     pub fn n_threads(mut self, n_threads: usize) -> Self {
-        self.0.n_threads = n_threads;
+        self.0.n_threads = (rayon::current_num_threads() - 1).max(1).min(n_threads);
         self
     }
 
     /// Sets format of the input grcov json file and its path.
-    pub fn grcov_format(mut self, grcov_format: GrcovFormat) -> Self {
+    pub fn grcov_format(mut self, grcov_format: GrcovFormat<A>) -> Self {
         self.0.grcov_format = grcov_format;
         self
     }
@@ -124,13 +140,13 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
     }
 
     /// Sets the path of the output file.
-    pub fn output_path(mut self, output_path: P) -> Self {
-        self.0.output_path = output_path;
+    pub fn output_path(mut self, output_path: B) -> Self {
+        self.0.output_path = Some(output_path);
         self
     }
 
     /// Runs the weighted code coverage runner.
-    pub fn run<T: AsRef<Path>>(self, project_path: T) -> Result<()> {
+    pub fn run<T: AsRef<Path>>(self, project_path: T) -> Result<WccOutput> {
         if self.0.complexity.1 .0.len() != 4 {
             return Err(Error::Thresholds);
         }
@@ -138,34 +154,35 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
         let files = read_files(&project_path)?;
         let grcov_json = fs::read_to_string(self.0.grcov_format.file_path())?;
         let prefix = get_prefix(&project_path)?;
-        let chunks = chunk_vector(files, self.0.n_threads);
 
         match self.0.mode {
             Mode::Files => {
                 let files_metrics =
-                    self.get_files_wcc_output(grcov_json, prefix, chunks, &project_path)?;
-                self.print_files_metrics(files_metrics, &project_path)?;
+                    self.get_files_wcc_output(grcov_json, prefix, files, &project_path)?;
+                self.print_files_metrics(&files_metrics, &project_path)?;
+
+                Ok(WccOutput::Files(files_metrics))
             }
             Mode::Functions => {
                 let functions_metrics =
-                    self.get_functions_wcc_output(grcov_json, prefix, chunks, &project_path)?;
-                self.print_functions_metrics(functions_metrics, project_path)?;
-            }
-        };
+                    self.get_functions_wcc_output(grcov_json, prefix, files, &project_path)?;
+                self.print_functions_metrics(&functions_metrics, project_path)?;
 
-        Ok(())
+                Ok(WccOutput::Functions(functions_metrics))
+            }
+        }
     }
 
     fn get_files_wcc_output<T: AsRef<Path>>(
         &self,
         grcov_json: String,
         prefix: usize,
-        chunks: Vec<Vec<String>>,
+        files: Vec<String>,
         project_path: T,
     ) -> Result<FilesWccOutput> {
         let output = match self.0.grcov_format {
             GrcovFormat::Coveralls(_) => CoverallsFilesWcc::new(
-                chunks,
+                files,
                 Coveralls::new(grcov_json, project_path)?,
                 self.0.complexity.0,
                 prefix,
@@ -174,7 +191,7 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
             )
             .run(self.0.n_threads)?,
             GrcovFormat::Covdir(_) => CovdirFilesWcc::new(
-                chunks,
+                files,
                 Covdir::new(grcov_json, project_path)?,
                 self.0.complexity.0,
                 prefix,
@@ -191,12 +208,12 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
         &self,
         grcov_json: String,
         prefix: usize,
-        chunks: Vec<Vec<String>>,
+        files: Vec<String>,
         project_path: T,
     ) -> Result<FunctionsWccOutput> {
         let output = match self.0.grcov_format {
             GrcovFormat::Coveralls(_) => CoverallsFunctionsWcc::new(
-                chunks,
+                files,
                 Coveralls::new(grcov_json, project_path)?,
                 self.0.complexity.0,
                 prefix,
@@ -205,7 +222,7 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
             )
             .run(self.0.n_threads)?,
             GrcovFormat::Covdir(_) => CovdirFunctionsWcc::new(
-                chunks,
+                files,
                 Covdir::new(grcov_json, project_path)?,
                 self.0.complexity.0,
                 prefix,
@@ -220,65 +237,62 @@ impl<P: AsRef<Path> + Default> WccRunner<P> {
 
     fn print_files_metrics<T: AsRef<Path>>(
         &self,
-        files_metrics: FilesWccOutput,
+        files_metrics: &FilesWccOutput,
         project_path: T,
     ) -> Result<()> {
-        let (metrics, files_ignored, complex_files, project_coverage) = files_metrics;
-        match self.0.output_format {
-            OutputFormat::Json => print_metrics_to_json(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
-                project_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
-            OutputFormat::Html => print_metrics_to_html(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
-                project_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
-        };
-        get_metrics_output(&metrics, &files_ignored, &complex_files);
+        if let Some(output_path) = &self.0.output_path {
+            let (metrics, files_ignored, complex_files, project_coverage) = files_metrics;
+            match self.0.output_format {
+                OutputFormat::Json => print_metrics_to_json(
+                    metrics,
+                    files_ignored,
+                    output_path.as_ref(),
+                    project_path.as_ref(),
+                    *project_coverage,
+                    self.0.sort_by,
+                )?,
+                OutputFormat::Html => print_metrics_to_html(
+                    metrics,
+                    files_ignored,
+                    output_path.as_ref(),
+                    &self.0.complexity,
+                )?,
+            };
+            get_metrics_output(metrics, files_ignored, complex_files);
+        }
 
         Ok(())
     }
 
     fn print_functions_metrics<T: AsRef<Path>>(
         &self,
-        functions_metrics: FunctionsWccOutput,
+        functions_metrics: &FunctionsWccOutput,
         project_path: T,
     ) -> Result<()> {
-        let (metrics, files_ignored, complex_files, project_coverage) = functions_metrics;
-        match self.0.output_format {
-            OutputFormat::Json => print_metrics_to_json_function(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
-                project_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
-            OutputFormat::Html => print_metrics_to_html_function(
-                &metrics,
-                &files_ignored,
-                self.0.output_path.as_ref(),
-                project_path.as_ref(),
-                project_coverage,
-                self.0.sort_by,
-            )?,
-        };
-        get_metrics_output_function(&metrics, &files_ignored, &complex_files);
+        if let Some(output_path) = &self.0.output_path {
+            let (metrics, files_ignored, complex_files, project_coverage) = functions_metrics;
+            match self.0.output_format {
+                OutputFormat::Json => print_metrics_to_json_function(
+                    metrics,
+                    files_ignored,
+                    output_path.as_ref(),
+                    project_path.as_ref(),
+                    *project_coverage,
+                    self.0.sort_by,
+                )?,
+                OutputFormat::Html => print_metrics_to_html_function(
+                    metrics,
+                    files_ignored,
+                    output_path.as_ref(),
+                    &self.0.complexity,
+                )?,
+            };
+            get_metrics_output_function(metrics, files_ignored, complex_files);
+        }
 
         Ok(())
     }
 }
-
-type FilesWccOutput = (Vec<FileMetrics>, Vec<String>, Vec<FileMetrics>, f64);
-type FunctionsWccOutput = (Vec<RootMetrics>, Vec<String>, Vec<FunctionMetrics>, f64);
 
 #[inline]
 pub(crate) fn get_prefix<A: AsRef<Path>>(files_path: A) -> Result<usize> {
@@ -288,15 +302,6 @@ pub(crate) fn get_prefix<A: AsRef<Path>>(files_path: A) -> Result<usize> {
         .ok_or(Error::PathConversion)?
         .to_string()
         .len())
-}
-
-// Chunks the vector of files in multiple chunks.
-// Each chunk will contain a number of files equal, or very close, to `n_threads`.
-pub(crate) fn chunk_vector(vec: Vec<String>, n_threads: usize) -> Vec<Vec<String>> {
-    let chunks = vec.chunks((vec.len() / n_threads).max(1));
-    chunks
-        .map(|chunk| chunk.iter().map(|c| c.into()).collect::<Vec<String>>())
-        .collect::<Vec<Vec<String>>>()
 }
 
 // Check all possible valid extensions
@@ -313,7 +318,7 @@ fn check_ext(ext: &OsStr) -> bool {
         || ext == "jsm"
 }
 
-// This function read all  the files in the project folder
+// This function read all the files in the project folder
 // Returns all the source files, ignoring the other files or an error in case of problems
 pub(crate) fn read_files<A: AsRef<Path>>(files_path: A) -> Result<Vec<String>> {
     let mut vec = vec![];
@@ -341,29 +346,29 @@ pub(crate) fn read_files<A: AsRef<Path>>(files_path: A) -> Result<Vec<String>> {
 
 /// Availabe grcov json file formats
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GrcovFormat {
+pub enum GrcovFormat<P: AsRef<Path>> {
     /// Coveralls.
-    Coveralls(PathBuf),
+    Coveralls(P),
     /// Covdir.
-    Covdir(PathBuf),
+    Covdir(P),
 }
 
-impl GrcovFormat {
+impl<P: AsRef<Path>> GrcovFormat<P> {
     /// Parses cli coveralls argument.
     pub fn coveralls_parser(
         coveralls_file: &str,
-    ) -> std::result::Result<GrcovFormat, Box<std::io::Error>> {
+    ) -> std::result::Result<GrcovFormat<PathBuf>, Box<std::io::Error>> {
         Ok(GrcovFormat::Coveralls(PathBuf::from(coveralls_file)))
     }
 
     /// Parses cli covdir argument.
     pub fn covdir_parser(
         covdir_file: &str,
-    ) -> std::result::Result<GrcovFormat, Box<std::io::Error>> {
+    ) -> std::result::Result<GrcovFormat<PathBuf>, Box<std::io::Error>> {
         Ok(GrcovFormat::Covdir(PathBuf::from(covdir_file)))
     }
 
-    fn file_path(&self) -> &PathBuf {
+    fn file_path(&self) -> &P {
         match self {
             Self::Coveralls(coveralls_file_path) => coveralls_file_path,
             Self::Covdir(covdir_file_path) => covdir_file_path,
@@ -372,7 +377,7 @@ impl GrcovFormat {
 }
 
 /// Complexity Metrics
-#[derive(Copy, Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Debug, Default, Clone, PartialEq, Eq, Hash, Serialize)]
 pub enum Complexity {
     /// Cyclomatic metric.
     #[default]

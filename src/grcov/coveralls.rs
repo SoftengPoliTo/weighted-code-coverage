@@ -41,41 +41,34 @@ impl Coveralls {
 mod tests {
 
     use super::Coveralls;
-    use std::fs;
+    use std::{fs, path::Path};
 
     const COVERALLS_PATH: &str = "./tests/grcov_files/grcov_coveralls.json";
 
     #[test]
     fn test_coveralls() {
         let json = fs::read_to_string(COVERALLS_PATH).unwrap();
-        let coveralls = Coveralls::new(json, "./project/path/").unwrap();
+        let coveralls = Coveralls::new(json, Path::new("./project/path/")).unwrap();
 
         insta::with_settings!({sort_maps => true}, {
-            insta::assert_json_snapshot!(coveralls, @r###"
-            {
-              "./project/path/examples/single_app.rs": {
-                "name": "examples/single_app.rs",
-                "coverage": [
-                  null,
-                  0
-                ]
-              },
-              "./project/path/src/app.rs": {
-                "name": "src/app.rs",
-                "coverage": [
-                  null,
-                  5
-                ]
-              },
-              "./project/path/src/error.rs": {
-                "name": "src/error.rs",
-                "coverage": [
-                  25,
-                  null
-                ]
-              }
-            }
-            "###);
+            insta::assert_yaml_snapshot!(coveralls, @r###"
+          ---
+          "./project/path/examples/single_app.rs":
+            name: examples/single_app.rs
+            coverage:
+              - ~
+              - 0
+          "./project/path/src/app.rs":
+            name: src/app.rs
+            coverage:
+              - ~
+              - 5
+          "./project/path/src/error.rs":
+            name: src/error.rs
+            coverage:
+              - 25
+              - ~
+          "###)
         });
     }
 }

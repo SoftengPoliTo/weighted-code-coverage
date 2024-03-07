@@ -140,49 +140,39 @@ fn get_total_coverage(covdir_json: &Value) -> Result<f64> {
 mod tests {
 
     use super::Covdir;
-    use std::fs;
+    use std::{fs, path::Path};
 
     const COVDIR_PATH: &str = "./tests/grcov_files/grcov_covdir.json";
 
     #[test]
     fn test_covdir() {
         let json = fs::read_to_string(COVDIR_PATH).unwrap();
-        let covdir = Covdir::new(json, "./project/path/").unwrap();
+        let covdir = Covdir::new(json, Path::new("./project/path/")).unwrap();
 
         insta::with_settings!({sort_maps => true}, {
-            insta::assert_json_snapshot!(covdir, @r###"
-            {
-              "source_files": {
-                "./project/path/src/app.rs": {
-                  "coverage": [
-                    -1,
-                    -1
-                  ],
-                  "coverage_percent": 86.62
-                },
-                "./project/path/src/inner_module/inner_module_file.rs": {
-                  "coverage": [
-                    -1,
-                    -1
-                  ],
-                  "coverage_percent": 0.0
-                },
-                "./project/path/src/inner_module/mod.rs": {
-                  "coverage": [
-                    0,
-                    -1
-                  ],
-                  "coverage_percent": 0.0
-                },
-                "./project/path/src/lib.rs": {
-                  "coverage": [
-                    2
-                  ],
-                  "coverage_percent": 100.0
-                }
-              },
-              "total_coverage": 77.21
-            }
+            insta::assert_yaml_snapshot!(covdir, @r###"
+            ---
+            source_files:
+              "./project/path/src/app.rs":
+                coverage:
+                  - -1
+                  - -1
+                coverage_percent: 86.62
+              "./project/path/src/inner_module/inner_module_file.rs":
+                coverage:
+                  - -1
+                  - -1
+                coverage_percent: 0
+              "./project/path/src/inner_module/mod.rs":
+                coverage:
+                  - 0
+                  - -1
+                coverage_percent: 0
+              "./project/path/src/lib.rs":
+                coverage:
+                  - 2
+                coverage_percent: 100
+            total_coverage: 77.21
             "###);
         });
     }

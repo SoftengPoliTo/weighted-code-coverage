@@ -1,7 +1,6 @@
 use rust_code_analysis::FuncSpace;
 
-use crate::error::*;
-use crate::Complexity;
+use crate::{concurrent::round_sd, error::*, Complexity};
 
 const THRESHOLD: f64 = 15.;
 // This function find the minimum space for a line i in the file
@@ -25,30 +24,29 @@ fn get_min_space(root: &FuncSpace, i: usize) -> FuncSpace {
 pub(crate) fn wcc_plain_function(
     space: &FuncSpace,
     covs: &[Option<i32>],
-    metric: Complexity,
-) -> Result<(f64, f64)> {
-    let ploc = space.metrics.loc.ploc();
-    let comp = match metric {
-        Complexity::Cyclomatic => space.metrics.cyclomatic.cyclomatic_sum(),
-        Complexity::Cognitive => space.metrics.cognitive.cognitive_sum(),
-    };
+    comp: f64,
+) -> Result<(f64, f64, f64)> {
+    let sloc = space.metrics.loc.sloc();
     let sum = covs
         .iter()
         .enumerate()
         .try_fold(0., |acc, (i, line)| -> Result<f64> {
             let mut sum = acc;
-            let start = space.start_line - 1;
-            let end = space.end_line;
+            let start = space.start_line;
+            let end = space.end_line + 1;
             if let Some(cov) = *line {
                 if cov > 0 && (start..end).contains(&i) {
-                    // If the line is not null and is covered (cov>0) the add the complexity  to the sum
+                    // If the line is not null and is covered (cov>0) the add the complexity to the sum
                     sum = acc + comp;
                 }
             }
 
             Ok(sum)
         })?;
-    Ok((sum / ploc, sum))
+    // debug!("\nsum: {}\ncomp: {}\nploc: {}\nsloc: {}\ncovs_len: {}\ncomp * ploc: {}\nwcc: {}", round_sd(sum), round_sd(comp), round_sd(ploc), round_sd(space.metrics.loc.sloc()), covs.len(), round_sd(comp * ploc), round_sd((sum / (comp * ploc)) * 100.0));
+    let wcc_plain = (sum / (comp * sloc)) * 100.0;
+
+    Ok((round_sd(wcc_plain), sum, comp * sloc))
 }
 
 // Calculate the WCC quantized value for a space
@@ -58,16 +56,16 @@ pub(crate) fn wcc_quantized_function(
     space: &FuncSpace,
     covs: &[Option<i32>],
     metric: Complexity,
-) -> Result<(f64, f64)> {
-    let ploc = space.metrics.loc.ploc();
+) -> Result<(f64, f64, f64)> {
+    let sloc = space.metrics.loc.sloc();
     let sum =
     //For each line find the minimum space and get complexity value then sum 1 if comp>threshold  else sum 1
         covs.iter()
             .enumerate()
             .try_fold(0., |acc, (i, line)| -> Result<f64> {
                 let mut sum = acc;
-                let start = space.start_line - 1;
-                let end = space.end_line;
+                let start = space.start_line;
+                let end = space.end_line + 1;
                 if let Some(cov) = *line {
                     if cov > 0 &&  (start..end).contains(&i) {
                         // If the line is covered get the space of the line and then check if the complexity is below the threshold
@@ -86,5 +84,7 @@ pub(crate) fn wcc_quantized_function(
 
                 Ok(sum)
             })?;
-    Ok((sum / ploc, sum))
+    let wcc_quantized = (sum / (2.0 * sloc)) * 100.0;
+
+    Ok((round_sd(wcc_quantized), sum, 2.0 * sloc))
 }

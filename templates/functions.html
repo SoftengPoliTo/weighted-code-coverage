@@ -1,76 +1,127 @@
-{% extends "base.html" %}
-
-{% block title %}WCC report - {{ project_folder }} {% endblock title %}
-
-{%- block content -%}
-    <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th class="has-text-centered" colspan="2">FUNCTION</th>
-                <th class="has-text-centered" colspan="2">WCC PLAIN</th>
-                <th class="has-text-centered" colspan="2">WCC QUANTIZED</th>
-                <th class="has-text-centered" colspan="2">CRAP</th>
-                <th class="has-text-centered" colspan="2">SKUNKSCORE</th>
-                <th class="has-text-centered" colspan="2">COMPLEX</th>
-                <th class="has-text-centered" colspan="2">PATH</th>
-            </tr>
-        </thead>
-        <tbody>
-            {%- for item in metrics -%}
-                <tr>
-                    <td class="has-text-centered" colspan="2"> {{item.file_name}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.file_path}} </td>
-                </tr>
-                {%- for item in item.functions -%}
-                <tr>
-                    <td class="has-text-centered" colspan="2"> {{item.function_name}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.function_path}} </td>
-                </tr>
-                {%- endfor -%}
-            {%- endfor -%}
-        </tbody>
+{% extends "base.html" %} {% block content %} {% for file in files %}
+<tr class="{% if file.metrics.is_complex %}complex{% endif %}">
+  <td onclick="toggleFunctionDetails('{{ loop.index0 }}')">
+    {% if file.file_path == 'Project' or file.file_path == 'Average' or
+    file.file_path == 'Min' or file.file_path == 'Max'%}
+    <span class="has-text-weight-bold">{{ file.file_path }}</span>
+    {% else %} {% if file.functions|length == 0 %}
+    <span class="icon">
+      <i class="fas fa-file"></i>
+    </span>
+    <span>{{ file.file_path }}</span>
+    {% else %}
+    <span>
+      <i
+        class="fas fa-sm fa-chevron-right"
+        id="expand-icon-{{ loop.index0 }}"
+      ></i>
+    </span>
+    <span class="icon">
+      <i class="fas fa-file"></i>
+    </span>
+    <a>{{ file.file_path }}</a>
+    {% endif %} {% endif %}
+  </td>
+  <td class="has-text-centered">{{ file.metrics.coverage }}%</td>
+  <td class="has-text-centered">{{ file.metrics.complexity }}</td>
+  <td>
+    <div class="progress-wrapper">
+      <progress
+        class="progress is-medium {% if file.metrics.wcc_plain < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file.metrics.wcc_plain }}"
+        max="100"
+      >
+        {{ file.metrics.wcc_plain }}%
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file.metrics.wcc_plain }}%
+      </p>
+    </div>
+  </td>
+  <td>
+    <div class="progress-wrapper is-4">
+      <progress
+        class="progress is-medium {% if file.metrics.wcc_quantized < thresholds[1] %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file.metrics.wcc_quantized }}"
+        max="100"
+      >
+        {{ file.metrics.wcc_quantized }}
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file.metrics.wcc_quantized }}%
+      </p>
+    </div>
+  </td>
+  <td
+    class="{% if file.metrics.crap > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+  >
+    {{ file.metrics.crap }}
+  </td>
+  <td
+    class="{% if file.metrics.skunk > thresholds[3] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+  >
+    {{ file.metrics.skunk }}
+  </td>
+</tr>
+{% if file.functions|length != 0 %}
+<tr id="details-{{ loop.index0 }}" class="is-hidden">
+  <td colspan="7" class="has-background-white-ter">
+    <table class="table is-fullwidth inner-table">
+      <thead>
+        <tr>
+          <th>
+            <h6 class="title is-6 has-text-weight-bold">Functions</h6>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for function in file.functions %}
+        <tr class="{% if function.metrics.is_complex %}complex{% endif %}">
+          <td>{{ function.name }}</td>
+          <td class="has-text-centered">{{ function.metrics.coverage }}%</td>
+          <td class="has-text-centered">{{ function.metrics.complexity }}</td>
+          <td>
+            <div class="progress-wrapper">
+              <progress
+                class="progress is-medium {% if function.metrics.wcc_plain < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+                value="{{ function.metrics.wcc_plain }}"
+                max="100"
+              >
+                {{ function.metrics.wcc_plain }}%
+              </progress>
+              <p class="progress-value has-text-grey-dark">
+                {{ function.metrics.wcc_plain }}%
+              </p>
+            </div>
+          </td>
+          <td>
+            <div class="progress-wrapper is-4">
+              <progress
+                class="progress is-medium {% if function.metrics.wcc_quantized < thresholds[1] %}is-danger{% else %}is-success{% endif %}"
+                value="{{ function.metrics.wcc_quantized }}"
+                max="100"
+              >
+                {{ function.metrics.wcc_quantized }}
+              </progress>
+              <p class="progress-value has-text-grey-dark">
+                {{ function.metrics.wcc_quantized }}%
+              </p>
+            </div>
+          </td>
+          <td
+            class="{% if function.metrics.crap > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+          >
+            {{ function.metrics.crap }}
+          </td>
+          <td
+            class="{% if function.metrics.skunk > thresholds[3] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+          >
+            {{ function.metrics.skunk }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
-    <h1> Complex Functions : {{number_of_complex_files}}</h1>
-    <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th class="has-text-centered" colspan="2">FUNCTION</th>
-                <th class="has-text-centered" colspan="2">WCC PLAIN</th>
-                <th class="has-text-centered" colspan="2">WCC QUANTIZED</th>
-                <th class="has-text-centered" colspan="2">CRAP</th>
-                <th class="has-text-centered" colspan="2">SKUNKSCORE</th>
-                <th class="has-text-centered" colspan="2">COMPLEX</th>
-                <th class="has-text-centered" colspan="2">PATH</th>
-            </tr>
-        </thead>
-        <tbody>
-            {%- for item in complex_functions -%}
-                <tr>
-                    <td class="has-text-centered" colspan="2"> {{item.function_name}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_plain}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.wcc_quantized}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.crap}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.skunk}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.metrics.is_complex}} </td>
-                    <td class="has-text-centered" colspan="2"> {{item.function_path}} </td>
-                </tr>
-            {%- endfor -%}
-        </tbody>
-    </table>
-    <h1> Files Ignored: {{number_of_files_ignored}}</h1>
-    <ul>
-        {%- for file in files_ignored -%}
-        <li>{{ file }}</li>      
-        {%- endfor -%}
-    </ul>
-{%- endblock content -%}
+  </td>
+</tr>
+{% endif %} {% endfor %} {% endblock %}

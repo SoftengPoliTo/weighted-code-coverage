@@ -8,8 +8,8 @@ use cli::{run_weighted_code_coverage, CargoArgs};
 #[derive(Subcommand)]
 enum Cmd {
     /// Weighted Code Coverage cargo subcommand
-    #[clap(name = "ccs")]
-    Ccs(CargoArgs),
+    #[clap(name = "wcc")]
+    Wcc(CargoArgs),
 }
 
 /// Weighted Code Coverage cargo applet
@@ -21,7 +21,7 @@ struct Cli {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let Cli {
-        cargo_args: Cmd::Ccs(mut cargo_args),
+        cargo_args: Cmd::Wcc(mut cargo_args),
     } = Cli::parse();
 
     let mut cmd = cargo_metadata::MetadataCommand::new();

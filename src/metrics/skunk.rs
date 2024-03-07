@@ -1,7 +1,6 @@
 use rust_code_analysis::FuncSpace;
 
-use crate::error::*;
-use crate::Complexity;
+use crate::{concurrent::round_sd, error::*};
 
 use super::get_covered_lines;
 
@@ -14,13 +13,9 @@ const COMPLEXITY_FACTOR: f64 = 25.0;
 pub(crate) fn skunk_nosmells_function(
     space: &FuncSpace,
     covs: &[Option<i32>],
-    metric: Complexity,
     coverage: Option<f64>,
+    comp: f64,
 ) -> Result<f64> {
-    let comp = match metric {
-        Complexity::Cyclomatic => space.metrics.cyclomatic.cyclomatic_sum(),
-        Complexity::Cognitive => space.metrics.cognitive.cognitive_sum(),
-    };
     let cov = if let Some(coverage) = coverage {
         coverage / 100.0
     } else {
@@ -31,9 +26,11 @@ pub(crate) fn skunk_nosmells_function(
             0.0
         }
     };
-    Ok(if cov == 100. {
+    let skunk = if cov == 100. {
         comp / COMPLEXITY_FACTOR
     } else {
         (comp / COMPLEXITY_FACTOR) * (100. - (100. * cov))
-    })
+    };
+
+    Ok(round_sd(skunk))
 }
