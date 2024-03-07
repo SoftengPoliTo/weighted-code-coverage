@@ -10,16 +10,20 @@ default-run = "weighted-code-coverage"
 rust-code-analysis = "=0.0.25"
 serde_json = { version = "^1.0", features = ["preserve_order"] }
 serde = { version = "^1.0", features = ["derive"] }
-thiserror = "=1.0.31"
-clap = { version = "=4.1", features = ["derive"] }
-csv = "=1.1.6"
-crossbeam = "=0.8.1"
+thiserror = "=1.0.51"
+clap = { version = "=4.4.11", features = ["derive"] }
+csv = "=1.3.0"
+crossbeam = "=0.8.2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tera = "1.17.1"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.31", features = ["serde"] }
 rayon = "1.8.0"
 cargo_metadata = "^0.18"
+minijinja = { version = "^1.0", features = ["loader"] }
+
+[dev-dependencies]
+insta = { version = "1.34.0", features = ["json", "yaml"] }
 
 [profile.release]
 opt-level = 3

@@ -1,11 +1,23 @@
 pub(crate) mod files;
 pub(crate) mod functions;
 
+use core::cmp::Ordering;
 use crossbeam::channel::{Receiver, Sender};
 use rayon::prelude::*;
+use rust_code_analysis::FuncSpace;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
-use crate::error::*;
+use crate::{
+    error::*,
+    metrics::{
+        crap::crap_function,
+        get_covered_lines,
+        skunk::skunk_nosmells_function,
+        wcc::{wcc_plain_function, wcc_quantized_function},
+    },
+    Complexity,
+};
 
 // Defines a framework for a *producers-consumers-composer* pattern
 // used to compute weighted code coverage.
@@ -78,7 +90,9 @@ pub(crate) struct ConsumerOutputWcc {
     pub(crate) covered_lines: f64,
     pub(crate) total_lines: f64,
     pub(crate) wcc_plain_sum: f64,
+    pub(crate) wcc_plain_max: f64,
     pub(crate) wcc_quantized_sum: f64,
+    pub(crate) wcc_quantized_max: f64,
     pub(crate) ploc_sum: f64,
     pub(crate) comp_sum: f64,
 }
@@ -88,21 +102,24 @@ impl ConsumerOutputWcc {
         self.covered_lines += update.covered_lines;
         self.total_lines += update.total_lines;
         self.wcc_plain_sum += update.wcc_plain_sum;
+        self.wcc_plain_max += update.wcc_plain_max;
         self.wcc_quantized_sum += update.wcc_quantized_sum;
+        self.wcc_quantized_max += update.wcc_quantized_sum;
         self.ploc_sum += update.ploc_sum;
         self.comp_sum += update.comp_sum;
     }
 }
 
-// Struct containing all the metrics
+/// Struct containing all the metrics
 #[derive(Clone, Default, Debug, Serialize, Deserialize, Copy, PartialEq)]
-pub(crate) struct Metrics {
-    pub(crate) wcc_plain: f64,
-    pub(crate) wcc_quantized: f64,
-    pub(crate) crap: f64,
-    pub(crate) skunk: f64,
-    pub(crate) is_complex: bool,
-    pub(crate) coverage: f64,
+pub struct Metrics {
+    pub wcc_plain: f64,
+    pub wcc_quantized: f64,
+    pub crap: f64,
+    pub skunk: f64,
+    pub is_complex: bool,
+    pub coverage: f64,
+    pub complexity: f64,
 }
 
 impl Metrics {
@@ -113,6 +130,7 @@ impl Metrics {
         skunk: f64,
         is_complex: bool,
         coverage: f64,
+        complexity: f64,
     ) -> Self {
         Self {
             wcc_plain,
@@ -121,6 +139,7 @@ impl Metrics {
             skunk,
             is_complex,
             coverage,
+            complexity,
         }
     }
 
@@ -132,6 +151,7 @@ impl Metrics {
             skunk: f64::MAX,
             is_complex: false,
             coverage: 100.0,
+            complexity: 0.0,
         }
     }
 
@@ -159,4 +179,169 @@ impl Metrics {
         self.coverage = coverage;
         self
     }
+
+    pub(crate) fn complexity(mut self, complexity: f64) -> Self {
+        self.complexity = complexity;
+        self
+    }
+}
+
+const COMPLEXITY_FACTOR: f64 = 25.0;
+
+pub(crate) trait Visit {
+    fn get_metrics_from_space(
+        space: &FuncSpace,
+        covs: &[Option<i32>],
+        metric: Complexity,
+        coverage: Option<f64>,
+        thresholds: &[f64],
+    ) -> Result<(Metrics, (f64, f64, f64, f64))>;
+}
+
+pub(crate) struct Tree;
+
+impl Visit for Tree {
+    fn get_metrics_from_space(
+        space: &FuncSpace,
+        covs: &[Option<i32>],
+        metric: Complexity,
+        coverage: Option<f64>,
+        thresholds: &[f64],
+    ) -> Result<(Metrics, (f64, f64, f64, f64))> {
+        let comp = match metric {
+            Complexity::Cyclomatic => space.metrics.cyclomatic.cyclomatic_sum(),
+            Complexity::Cognitive => space.metrics.cognitive.cognitive_sum(),
+        };
+        let (wcc_plain, sp_sum, sp_max) = wcc_plain_function(space, covs, comp)?;
+        let (wcc_quantized, sq_sum, sq_max) = wcc_quantized_function(space, covs, metric)?;
+        let crap = crap_function(space, covs, coverage, comp)?;
+        let skunk = skunk_nosmells_function(space, covs, coverage, comp)?;
+        let is_complex = check_complexity(wcc_plain, wcc_quantized, crap, skunk, thresholds);
+        let coverage = if let Some(coverage) = coverage {
+            coverage
+        } else {
+            let (covl, tl) = get_covered_lines(covs, space.start_line, space.end_line)?;
+            if tl == 0.0 {
+                0.0
+            } else {
+                (covl / tl) * 100.0
+            }
+        };
+        let m = Metrics::new(
+            wcc_plain,
+            wcc_quantized,
+            crap,
+            skunk,
+            is_complex,
+            f64::round(coverage * 100.0) / 100.0,
+            comp,
+        );
+        Ok((m, (sp_sum, sp_max, sq_sum, sq_max)))
+    }
+}
+
+#[inline(always)]
+#[allow(dead_code)]
+pub(crate) fn compare_float(a: f64, b: f64) -> bool {
+    a.total_cmp(&b) == Ordering::Equal
+}
+
+// Check complexity of a metric
+// Return true if al least one metric exceed a threshold , false otherwise
+#[inline(always)]
+fn check_complexity(
+    wcc_plain: f64,
+    wcc_quantized: f64,
+    crap: f64,
+    skunk: f64,
+    thresholds: &[f64],
+) -> bool {
+    wcc_plain < thresholds[0]
+        || wcc_quantized < thresholds[1]
+        || crap > thresholds[2]
+        || skunk > thresholds[3]
+}
+
+// GET average, maximum and minimum given all the metrics
+pub(crate) fn get_cumulative_values(metrics: &[Metrics]) -> (Metrics, Metrics, Metrics) {
+    let mut min = Metrics::min();
+    let mut max = Metrics::default();
+    let (wcc, wccq, crap, skunk, cov, comp) =
+        metrics
+            .iter()
+            .fold((0.0, 0.0, 0.0, 0.0, 0.0, 0.0), |acc, m| {
+                max.wcc_plain = max.wcc_plain.max(m.wcc_plain);
+                max.wcc_quantized = max.wcc_quantized.max(m.wcc_quantized);
+                max.crap = max.crap.max(m.crap);
+                max.skunk = max.skunk.max(m.skunk);
+                max.coverage = max.coverage.max(m.coverage);
+                max.complexity = max.complexity.max(m.complexity);
+                min.wcc_plain = min.wcc_plain.min(m.wcc_plain);
+                min.wcc_quantized = min.wcc_quantized.min(m.wcc_quantized);
+                min.crap = min.crap.min(m.crap);
+                min.skunk = min.skunk.min(m.skunk);
+                min.coverage = min.coverage.min(m.coverage);
+                min.complexity = min.complexity.min(m.complexity);
+                (
+                    acc.0 + m.wcc_plain,
+                    acc.1 + m.wcc_quantized,
+                    acc.2 + m.crap,
+                    acc.3 + m.skunk,
+                    acc.4 + m.coverage,
+                    acc.5 + m.complexity,
+                )
+            });
+
+    let l = metrics.len() as f64;
+    debug!("DEBUG l: {}", l);
+    let avg = Metrics::new(
+        round_sd(wcc / l),
+        round_sd(wccq / l),
+        round_sd(crap / l),
+        round_sd(skunk / l),
+        false,
+        round_sd(cov / l),
+        round_sd(comp / l),
+    );
+
+    (avg, max, min)
+}
+
+// Calculate WCC PLAIN , WCC QUANTIZED, CRA and SKUNKSCORE for the entire project
+// Using the sum values computed before
+pub(crate) fn get_project_metrics(
+    values: ConsumerOutputWcc,
+    project_coverage: Option<f64>,
+) -> Result<Metrics> {
+    let project_coverage = if let Some(cov) = project_coverage {
+        cov
+    } else if values.total_lines != 0.0 {
+        (values.covered_lines / values.total_lines) * 100.0
+    } else {
+        0.0
+    };
+
+    let m = Metrics::default()
+        .wcc_plain(round_sd(
+            (values.wcc_plain_sum / values.wcc_plain_max) * 100.0,
+        ))
+        .wcc_quantized(round_sd(
+            (values.wcc_quantized_sum / values.wcc_quantized_max) * 100.0,
+        ))
+        .crap(round_sd(
+            ((values.comp_sum.powf(2.)) * ((1.0 - project_coverage / 100.).powf(3.)))
+                + values.comp_sum,
+        ))
+        .skunk(round_sd(
+            (values.comp_sum / COMPLEXITY_FACTOR) * (100. - (project_coverage)),
+        ))
+        .coverage(round_sd(project_coverage))
+        .complexity(round_sd(values.comp_sum));
+
+    Ok(m)
+}
+
+// Round f64 to second decimal
+pub(crate) fn round_sd(x: f64) -> f64 {
+    (x * 100.0).round() / 100.0
 }

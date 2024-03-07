@@ -1,0 +1,66 @@
+{
+    "children": {
+      "src": {
+        "children": {
+          "inner_module": {
+            "children": {
+              "mod.rs": {
+                "coverage": [
+                  0, -1
+                ],
+                "coveragePercent": 0.0,
+                "linesCovered": 0,
+                "linesMissed": 70,
+                "linesTotal": 70,
+                "name": "mod.rs"
+              },
+              "inner_module_file.rs": {
+                "coverage": [
+                  -1, -1
+                ],
+                "coveragePercent": 0.0,
+                "linesCovered": 0,
+                "linesMissed": 25,
+                "linesTotal": 25,
+                "name": "inner_module_file.rs"
+              }
+            },
+            "coveragePercent": 0.0,
+            "linesCovered": 0,
+            "linesMissed": 95,
+            "linesTotal": 95,
+            "name": "inner_module"
+          },
+          "app.rs": {
+            "coverage": [
+              -1, -1
+            ],
+            "coveragePercent": 86.62,
+            "linesCovered": 343,
+            "linesMissed": 53,
+            "linesTotal": 396,
+            "name": "app.rs"
+          },
+          "lib.rs": {
+            "coverage": [2],
+            "coveragePercent": 100.0,
+            "linesCovered": 1,
+            "linesMissed": 0,
+            "linesTotal": 1,
+            "name": "lib.rs"
+          }
+        },
+        "coveragePercent": 86.38,
+        "linesCovered": 691,
+        "linesMissed": 109,
+        "linesTotal": 800,
+        "name": "src"
+      }
+    },
+    "coveragePercent": 77.21,
+    "linesCovered": 691,
+    "linesMissed": 204,
+    "linesTotal": 895,
+    "name": ""
+  }
+  

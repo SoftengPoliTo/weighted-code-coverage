@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weighted code coverage</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css"
+    />
+    <link rel="stylesheet" href="templates/css/styles.css" />
+    <style>
+      .progress-wrapper {
+        position: relative;
+      }
+
+      .progress-value {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: calc(1rem / 1.5);
+        line-height: 1rem;
+        font-weight: bold;
+      }
+
+      .progress.is-small + .progress-value {
+        font-size: calc(0.75rem / 1.5);
+        line-height: 0.75rem;
+      }
+
+      .progress.is-medium + .progress-value {
+        font-size: calc(1.25rem / 1.5);
+        line-height: 1.25rem;
+      }
+
+      .progress.is-large + .progress-value {
+        font-size: calc(1.5rem / 1.5);
+        line-height: 1.5rem;
+      }
+
+      table,
+      td,
+      th {
+        border: 1px solid #ddd;
+        width: 15%;
+        padding: 5px;
+      }
+
+      .th-bg {
+        background: #ddeeee;
+      }
+
+      .inner-table {
+        /* border: none; */
+        background-color: #f5f5f5;
+      }
+
+      hr.solid {
+        border-top: 2px solid #ddeeee;
+        margin-left: 30px;
+        margin-right: 30px;
+      }
+
+      .complex td {
+        position: relative;
+      }
+
+      .complex td:first-child::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 4px;
+        background-color: #ff3860;
+      }
+    </style>
+    <script src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+    <script>
+      function toggleFunctionDetails(rowId) {
+        var details = document.getElementById("details-" + rowId);
+        if (details) {
+          details.classList.toggle("is-hidden");
+        }
+
+        var icon = document.getElementById("expand-icon-" + rowId);
+        if (icon) {
+          if (icon.classList.contains("fa-chevron-right")) {
+            icon.classList.remove("fa-chevron-right");
+            icon.classList.add("fa-chevron-down");
+          } else {
+            icon.classList.remove("fa-chevron-down");
+            icon.classList.add("fa-chevron-right");
+          }
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <section class="hero is-primary is-bold">
+      <div class="hero-body">
+        <div class="container has-text-centered">
+          <h2 class="title is-2">Weighted Code Coverage</h2>
+          <h4 class="subtitle is-4">
+            {{ mode }} mode with {{ complexity_metric }} complexity metric
+          </h4>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h4 class="title is-4">Analyzed files</h4>
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th class="th-bg">
+                <h6 class="title is-6 has-text-weight-bold">File</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">Coverage</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">Complexity</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">WCC plain</h6>
+                <h6 class="subtitle is-6">( &gt; {{ thresholds[0] }}% )</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">WCC quantized</h6>
+                <h6 class="subtitle is-6">( &gt; {{ thresholds[1] }}% )</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">CRAP</h6>
+                <h6 class="subtitle is-6">( &lt; {{ thresholds[2] }} )</h6>
+              </th>
+              <th class="has-text-centered th-bg">
+                <h6 class="title is-6">Skunk</h6>
+                <h6 class="subtitle is-6">( &lt; {{ thresholds[3] }} )</h6>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% block content %}{% endblock %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="solid" />
+
+    <section class="section">
+      <div class="container">
+        <h4 class="title is-4">Ignored files</h4>
+        <div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="th-bg">
+                  <h6 class="title is-6 has-text-weight-bold">File</h6>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for file in files_ignored %}
+              <tr>
+                <td>
+                  <span class="icon">
+                    <i class="fas fa-file"></i>
+                  </span>
+                  <p>{{ file }}</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

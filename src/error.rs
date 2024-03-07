@@ -35,7 +35,7 @@ pub enum Error {
     #[error("Error while sending job via sender")]
     Sender,
     #[error("Error while creating HTML file")]
-    Html(#[from] tera::Error),
+    Html(#[from] minijinja::Error),
 }
 
 pub(crate) type Result<T> = ::std::result::Result<T, Error>;

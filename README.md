@@ -1,5 +1,10 @@
 # Weighted Code Coverage
 
+[![Actions Status][actions badge]][actions]
+[![CodeCov][codecov badge]][codecov]
+[![LICENSE][license badge]][license]
+[![dependency status][status badge]][status]
+
 This repository contains the implementations of some Weighted Code Coverage algorithms
 for some of the languages supported by rust-code-analysis.
 
@@ -36,86 +41,94 @@ The higher the result the more complex is the file.
 
 Run `weighted-code-coverage` on a project with the following command:
 ```
-weighted-code-coverage [OPTIONS] --path_file <PATH_FILE> --path_json <PATH_JSON>
+weighted-code-coverage [OPTIONS] --project-path <PROJECT_PATH> (--coveralls <COVERALLS> | --covdir <COVDIR>)
 ```
-Example with some options:
 
+Example with some options:
 ```
-weighted-code-coverage  --path_file /path/to/source/code --path_json /path/to/coveralls.json -c cyclomatic --json /path/to/output.json -f coveralls -m files -t 35.0,1.5,35.0,30.0
+weighted-code-coverage --project-path /path/to/source/code --coveralls /path/to/coveralls.json -c cyclomatic:35.0,1.5,35.0,30.0 -t 8 -m files -s wcc_plain --output-format json --output-path /path/to/output.json -v
+```
+
+### Grcov Format
+To specify the format of the grcov json file use `--coveralls` or `--covdir` followed by the file path.
+
+Note that the two options are mutual exclusive, but is mandatory to insert one of them.
+
+Example `--coveralls`:
+```
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls ./coveralls.json
+```
+
+Example `--covdir`:
+```
+weighted-code-coverage --project_path <PROJECT_PATH> --covdir ./covdir.json
 ```
 
 ### Complexity
-To choose complexity metric to use.
-use the *complexity* `c` option.
+To choose *complexity* metric and *thresholds* use `--complexity` or `-c`.
 
-It supports only these values: *cyclomatic*, *cognitive*.
-If not specified the default value is *cyclomatic*.
+The supported values are *cyclomatic* and *cognitive*.
+If not specified the default value for the complexity metric *cyclomatic* while for the tresholds *35.0,1.5,35.0,30.0*.
 
-Example:
-```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -c cognitive
-```
-
-### JSON Format
-To specify the json format used for the json file.
-use the *json-format* `f` option.
-
-It supports only these values: *coveralls*, *covdir*.
-If not specified the default value is *coveralls*.
+Tresholds values refer to the thresholds for the 4 algorithms: *WCC PLAIN*, *WCC QUANTIZED*, *CRAP* and *SKUNK*.
 
 Example:
 ```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -f coveralls
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> -c cognitive:45.0,2.5,45.0,40.0
+```
+
+### Threads
+To choose the number of threads that will be used for the computation use `--threads` or `-t`.
+
+If not specified the default value is maximum number of threads - 1.
+
+Example:
+```
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> -t 7
 ```
 
 ### Mode
 To choose the mode to use for analysis.
-use the *mode* `m` option.
+use `--mode` or `-m`.
 
-It supports only these values: *files*, *functions*.
+The supported values are *files* and *functions*.
 If not specified the default value is *files*.
 
 Example:
 ```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -m functions
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> -m functions
 ```
 
-### Thresholds
-To set four thresholds for evaluation during the analysis.
-use the *thresholds* `t` option. 
+### Sort
+To choose which metric to use for sorting the complex files/functions use `--sort` or `-s`.
 
-A string must be given with all the 4 algorithms separated by comma *,* in this specific order:
-*WCC PLAIN*,*WCC QUANTIZED*,*CRAP*,*SKUNK*
-
-If not specified the default value are 35.0,1.5,35.0,30.0.
-
-Example:
-```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -t 50.0,0.7,65.0,45.0
-```
-
-### Threads
-To choose the number of thread to launch for the application.
-Use the *n_threads* `n` option. 
-
-If not specified the default value is 2.
-Can launch at minimum 2 threads.
-
-Example:
-```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -n 16
-```
-
-### Sort By
-To choose which metric to use for sorting the complex files/functions.
-Use the *sort_by* `s` option. 
-
-It supports only these values: *wcc_plain*, *wcc_quantized*, *crap*, *skunk*.
+The supported values are: *wcc_plain*, *wcc_quantized*, *crap* and *skunk*.
 If not specified the default value is *wcc_plain*.
 
 Example:
 ```
-weighted-code-coverage --path_file <PATH_FILE> --path_json <PATH_JSON> -s crap
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> -s crap
+```
+
+### Output format
+To choose the output file format use `--output-format`.
+
+The supported values are *json* and *html*.
+If not specified the default value is *json*.
+
+Example:
+```
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> --outuput-format json
+```
+
+### Output path
+To choose the path of the output file use `--output-path`.
+
+If not specified the default value is *./wcc_output.json*.
+
+Example:
+```
+weighted-code-coverage --project-path <PROJECT_PATH> --coveralls <COVERALLS> --outuput-path ./output.json
 ```
 
 ## Steps to install and run weighted-code-coverage
@@ -146,4 +159,16 @@ grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_T
 
 ## License
 
-Distributed under the terms of the MIT license - See LICENSE for details.
+Released under the [MIT License](LICENSE).
+
+<!-- Links -->
+[actions]: https://github.com/SoftengPoliTo/weighted-code-coverage/actions
+[codecov]: https://codecov.io/gh/SoftengPoliTo/weighted-code-coverage
+[license]: LICENSES/MIT.txt
+[status]: https://deps.rs/repo/github/SoftengPoliTo/weighted-code-coverage
+
+<!-- Badges -->
+[actions badge]: https://github.com/SoftengPoliTo/weighted-code-coverage/workflows/weighted-code-coverage/badge.svg
+[codecov badge]: https://codecov.io/gh/SoftengPoliTo/weighted-code-coverage/branch/master/graph/badge.svg
+[license badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[status badge]: https://deps.rs/repo/github/SoftengPoliTo/weighted-code-coverage/status.svg

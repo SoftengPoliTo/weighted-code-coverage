@@ -1,0 +1,276 @@
+---
+source: tests/output_test.rs
+expression: "serde_json::to_string_pretty(&output).unwrap()"
+---
+{
+  "Files": [
+    [
+      {
+        "metrics": {
+          "wcc_plain": 55.06,
+          "wcc_quantized": 27.53,
+          "crap": 123.97,
+          "skunk": 53.54,
+          "is_complex": true,
+          "coverage": 86.62,
+          "complexity": 100.0
+        },
+        "file": "app.rs",
+        "path": "src/app.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 43.33,
+          "wcc_quantized": 21.67,
+          "crap": 40.78,
+          "skunk": 22.24,
+          "is_complex": true,
+          "coverage": 84.55,
+          "complexity": 36.0
+        },
+        "file": "command.rs",
+        "path": "src/command.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 42.98,
+          "wcc_quantized": 21.49,
+          "crap": 33.47,
+          "skunk": 9.96,
+          "is_complex": false,
+          "coverage": 92.45,
+          "complexity": 33.0
+        },
+        "file": "context.rs",
+        "path": "src/context.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 2.86,
+          "wcc_quantized": 1.43,
+          "crap": 257.94,
+          "skunk": 64.0,
+          "is_complex": true,
+          "coverage": 5.88,
+          "complexity": 17.0
+        },
+        "file": "error.rs",
+        "path": "src/error.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 54.02,
+          "wcc_quantized": 27.01,
+          "crap": 48.33,
+          "skunk": 15.87,
+          "is_complex": true,
+          "coverage": 91.56,
+          "complexity": 47.0
+        },
+        "file": "flag.rs",
+        "path": "src/flag.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 42.86,
+          "wcc_quantized": 21.43,
+          "crap": 3.0,
+          "skunk": 0.0,
+          "is_complex": false,
+          "coverage": 100.0,
+          "complexity": 3.0
+        },
+        "file": "help.rs",
+        "path": "src/help.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 1.0,
+          "skunk": 0.0,
+          "is_complex": true,
+          "coverage": 100.0,
+          "complexity": 1.0
+        },
+        "file": "lib.rs",
+        "path": "src/lib.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 552.0,
+          "skunk": 92.0,
+          "is_complex": true,
+          "coverage": 0.0,
+          "complexity": 23.0
+        },
+        "file": "multiple_app.rs",
+        "path": "examples/multiple_app.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 20.0,
+          "skunk": 16.0,
+          "is_complex": true,
+          "coverage": 0.0,
+          "complexity": 4.0
+        },
+        "file": "single_app.rs",
+        "path": "examples/single_app.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 51.33,
+          "wcc_quantized": 100.0,
+          "crap": 1089.33,
+          "skunk": 240.7,
+          "is_complex": false,
+          "coverage": 77.21,
+          "complexity": 264.0
+        },
+        "file": "Project",
+        "path": "Project"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 26.79,
+          "wcc_quantized": 13.4,
+          "crap": 120.05,
+          "skunk": 30.4,
+          "is_complex": false,
+          "coverage": 62.34,
+          "complexity": 29.33
+        },
+        "file": "Average",
+        "path": "Average"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 55.06,
+          "wcc_quantized": 27.53,
+          "crap": 552.0,
+          "skunk": 92.0,
+          "is_complex": false,
+          "coverage": 100.0,
+          "complexity": 100.0
+        },
+        "file": "Max",
+        "path": "Max"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 1.0,
+          "skunk": 0.0,
+          "is_complex": false,
+          "coverage": 0.0,
+          "complexity": 0.0
+        },
+        "file": "Min",
+        "path": "Min"
+      }
+    ],
+    [
+      "./tests/seahorse/src/action.rs"
+    ],
+    [
+      {
+        "metrics": {
+          "wcc_plain": 55.06,
+          "wcc_quantized": 27.53,
+          "crap": 123.97,
+          "skunk": 53.54,
+          "is_complex": true,
+          "coverage": 86.62,
+          "complexity": 100.0
+        },
+        "file": "app.rs",
+        "path": "src/app.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 54.02,
+          "wcc_quantized": 27.01,
+          "crap": 48.33,
+          "skunk": 15.87,
+          "is_complex": true,
+          "coverage": 91.56,
+          "complexity": 47.0
+        },
+        "file": "flag.rs",
+        "path": "src/flag.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 43.33,
+          "wcc_quantized": 21.67,
+          "crap": 40.78,
+          "skunk": 22.24,
+          "is_complex": true,
+          "coverage": 84.55,
+          "complexity": 36.0
+        },
+        "file": "command.rs",
+        "path": "src/command.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 2.86,
+          "wcc_quantized": 1.43,
+          "crap": 257.94,
+          "skunk": 64.0,
+          "is_complex": true,
+          "coverage": 5.88,
+          "complexity": 17.0
+        },
+        "file": "error.rs",
+        "path": "src/error.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 1.0,
+          "skunk": 0.0,
+          "is_complex": true,
+          "coverage": 100.0,
+          "complexity": 1.0
+        },
+        "file": "lib.rs",
+        "path": "src/lib.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 552.0,
+          "skunk": 92.0,
+          "is_complex": true,
+          "coverage": 0.0,
+          "complexity": 23.0
+        },
+        "file": "multiple_app.rs",
+        "path": "examples/multiple_app.rs"
+      },
+      {
+        "metrics": {
+          "wcc_plain": 0.0,
+          "wcc_quantized": 0.0,
+          "crap": 20.0,
+          "skunk": 16.0,
+          "is_complex": true,
+          "coverage": 0.0,
+          "complexity": 4.0
+        },
+        "file": "single_app.rs",
+        "path": "examples/single_app.rs"
+      }
+    ],
+    77.21
+  ]
+}
