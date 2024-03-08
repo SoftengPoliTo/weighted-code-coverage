@@ -15,14 +15,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Install stable
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Build weighted-code-coverage
       run: |
@@ -40,7 +36,7 @@ jobs:
         echo "::set-output name=name::${ARCHIVE_NAME}.zip"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.package.outputs.name }}
         path: ${{ steps.package.outputs.file }}
@@ -62,15 +58,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
-        toolchain: stable
         target: ${{ matrix.target }}
-        override: true
 
     - name: Build weighted-code-coverage
       run: |
@@ -90,7 +83,7 @@ jobs:
         echo ::set-output "name=name::${TAR_FILE}"
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ steps.package.outputs.name }}
         path: ${{ steps.package.outputs.file }}
@@ -103,14 +96,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Install Rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Create Cargo.lock
         run: |
@@ -123,7 +112,7 @@ jobs:
           echo "::set-output name=tag::$VERSION"
 
       - name: Download artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           path: ./binaries
 
