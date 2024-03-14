@@ -51,6 +51,10 @@ concurrency:
 jobs:
   ################################## CODE COVERAGE LAYER ##################################
   weighted-code-coverage:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
 
     steps:
@@ -102,7 +106,7 @@ jobs:
           name: reportwcc
           path: |
             ~/wcc-output/index.html
-      
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
 
