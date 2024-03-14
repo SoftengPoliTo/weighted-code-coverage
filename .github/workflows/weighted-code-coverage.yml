@@ -63,29 +63,33 @@ jobs:
           WCC_VERSION: v0.2.0
           WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
         run: |
-          git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git
-
+          git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
+      - name: Install llvm-tools-preview
+        run: |
+          rustup component add llvm-tools-preview
+      # Not necessary on a newly created image, but strictly advised
+      - name: Run cargo clean
+        run: |
+          cargo clean
       - name: Run tests
         env:
           RUSTFLAGS: "-Cinstrument-coverage"
-          LLVM_PROFILE_FILE: "weighted-code-coverage-%p-%m.profraw"
+          LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
         run: |
           cargo test --verbose
-
       - name: Run grcov
         run: |
-          grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN -o coveralls.json
-
+          grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
       - name: Run weighted-code-coverage
         run: |
-          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path ./
-
+          mkdir $HOME/wcc-output
+          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
       - name: Upload weighted-code-coverage data
         uses: actions/upload-artifact@v3
         with:
-          name: wcc-artifact
+          name: reportwcc
           path: |
-            index.html
+            ~/wcc-output/index.html
 
   deploy:
     needs: weighted-code-coverage
@@ -102,17 +106,18 @@ jobs:
     # Specify runner + deployment step
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
         with:
-          name: wcc-artifact
-      
+          name: reportwcc
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      - name: Upload artifact
+      - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: wcc-artifact
+          path: reportwcc
 
       - name: Deploy to GitHub Pages
         id: deployment
