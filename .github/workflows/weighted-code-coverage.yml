@@ -1,3 +1,127 @@
+# name: weighted-code-coverage
+
+# on:
+#   push:
+#     branches:
+#       - master
+#       - ci
+#     paths:
+#       - "src/**"
+#       - "tests/**"
+#       - "crates/**"
+#       - ".github/**"
+#       - "Cargo.toml"
+#       - "Cargo.lock"
+#   pull_request:
+#     branches:
+#       - master
+#     paths:
+#       - "src/**"
+#       - "tests/**"
+#       - "crates/**"
+#       - ".github/**"
+#       - "Cargo.toml"
+#       - "Cargo.lock"
+
+# env:
+#   #
+#   # Dependency versioning
+#   #
+
+#   GRCOV_VERSION: "0.8.13"
+
+#   WCC_VERSION: "0.2.0"
+
+#   UDEPS_VERSION: "0.1.35"
+
+#   CAREFUL_VERSION: "0.3.4"
+
+# # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# permissions:
+#   contents: read
+#   pages: write
+#   id-token: write
+
+# jobs:
+#   ################################## CODE COVERAGE LAYER ##################################
+#   weighted-code-coverage:
+#     environment:
+#       name: github-pages
+#       url: ${{ steps.deployment.outputs.page_url }}
+
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Install Rust stable
+#         uses: dtolnay/rust-toolchain@stable
+#         with:
+#           components: llvm-tools-preview
+
+#       - name: Install grcov
+#         env:
+#           GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+#           GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
+#         run: |
+#           curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
+#           tar xj -C $HOME/.cargo/bin
+
+#       - name: Install weighted-code-coverage
+#         env:
+#           WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
+#           WCC_VERSION: v0.2.0
+#           WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
+#         run: |
+#           git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
+
+#       - name: Install llvm-tools-preview
+#         run: |
+#           rustup component add llvm-tools-preview
+
+#       # Not necessary on a newly created image, but strictly advised
+#       - name: Run cargo clean
+#         run: |
+#           cargo clean
+
+#       - name: Run tests
+#         env:
+#           RUSTFLAGS: "-Cinstrument-coverage"
+#           LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
+#         run: |
+#           cargo test --verbose
+
+#       - name: Run grcov
+#         run: |
+#           grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
+
+#       - name: Run weighted-code-coverage
+#         run: |
+#           mkdir $HOME/wcc-output
+#           cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
+
+#       - name: Upload weighted-code-coverage data
+#         uses: actions/upload-artifact@v3
+#         with:
+#           name: reportwcc
+#           path: |
+#             ~/wcc-output/index.html
+
+#       - name: Setup Pages
+#         uses: actions/configure-pages@v4.0.0
+#         with:
+#           enablement: true
+
+#       - name: Upload artifact
+#         uses: actions/upload-pages-artifact@v3.0.1
+#         with:
+#           path: ~/wcc-output/index.html
+
+#       - name: Deploy to GitHub Pages
+#         id: deployment
+#         uses: actions/deploy-pages@v4.0.4
+
+
 name: weighted-code-coverage
 
 on:
@@ -23,25 +147,11 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
 
-env:
-  #
-  # Dependency versioning
-  #
-
-  GRCOV_VERSION: "0.8.13"
-
-  WCC_VERSION: "0.2.0"
-
-  UDEPS_VERSION: "0.1.35"
-
-  CAREFUL_VERSION: "0.3.4"
-
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-# permissions:
-#   contents: read
-#   pages: write
-#   id-token: write
-permissions: write-all
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -50,8 +160,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  ################################## CODE COVERAGE LAYER ##################################
-  weighted-code-coverage:
+  weighted-code-coverage-ubuntu:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -59,19 +168,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: llvm-tools-preview
+          toolchain: stable
 
       - name: Install grcov
         env:
           GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+          GRCOV_VERSION: v0.8.13
           GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
         run: |
-          curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
+          curl -L "$GRCOV_LINK/$GRCOV_VERSION/$GRCOV_BINARY" |
           tar xj -C $HOME/.cargo/bin
 
       - name: Install weighted-code-coverage
@@ -81,26 +192,32 @@ jobs:
           WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
         run: |
           git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
+
       - name: Install llvm-tools-preview
         run: |
           rustup component add llvm-tools-preview
+
       # Not necessary on a newly created image, but strictly advised
       - name: Run cargo clean
         run: |
           cargo clean
+
       - name: Run tests
         env:
           RUSTFLAGS: "-Cinstrument-coverage"
           LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
         run: |
           cargo test --verbose
+
       - name: Run grcov
         run: |
           grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
+
       - name: Run weighted-code-coverage
         run: |
           mkdir $HOME/wcc-output
           cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
+
       - name: Upload weighted-code-coverage data
         uses: actions/upload-artifact@v3
         with:
@@ -108,48 +225,17 @@ jobs:
           path: |
             ~/wcc-output/index.html
 
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Setup Pages
-        uses: actions/configure-pages@v4.0.0
-        with:
-          enablement: true
+        uses: actions/configure-pages@v3
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3.0.1
+        uses: actions/upload-pages-artifact@v2
         with:
           path: ~/wcc-output/index.html
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.4
-
-  # deploy:
-  #   needs: weighted-code-coverage
-
-  #   permissions:
-  #     pages: write # to deploy to Pages
-  #     id-token: write # to verify the deployment originates from an appropriate source
-
-  #   # Deploy to the github-pages environment
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-
-  #   # Specify runner + deployment step
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Download artifacts
-  #       uses: actions/download-artifact@v3
-  #       with:
-  #         name: reportwcc
-
-  #     - name: Setup Pages
-  #       uses: actions/configure-pages@v4
-
-  #     - name: Upload pages artifact
-  #       uses: actions/upload-pages-artifact@v3
-  #       with:
-  #         path: reportwcc
-
-  #     - name: Deploy to GitHub Pages
-  #       id: deployment
-  #       uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v2
