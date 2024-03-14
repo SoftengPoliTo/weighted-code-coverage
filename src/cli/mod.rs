@@ -28,7 +28,7 @@ fn select_json_format(coveralls: Option<JsonFormat>, covdir: Option<JsonFormat>)
     .expect("An option should be set between `coveralls` and `covdir`")
 }
 
-// Parse a single key-value pair
+// Parse a single key-value pair.
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
 where
     T: std::str::FromStr,
