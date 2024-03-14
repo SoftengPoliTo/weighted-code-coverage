@@ -39,8 +39,6 @@ env:
 jobs:
   ################################## CODE COVERAGE LAYER ##################################
   weighted-code-coverage:
-    needs: [build, docs]
-
     runs-on: ubuntu-latest
 
     steps:
