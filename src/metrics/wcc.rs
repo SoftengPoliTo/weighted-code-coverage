@@ -1,6 +1,14 @@
 use rust_code_analysis::FuncSpace;
+use tracing::debug;
 
-use crate::{concurrent::round_sd, error::*, Complexity};
+use crate::{error::*, Complexity};
+
+use super::{round_sd, LinesMetrics};
+
+pub(crate) struct WccFuncSpace {
+    pub(crate) value: f64,
+    pub(crate) percentage: f64,
+}
 
 const THRESHOLD: f64 = 15.;
 // This function find the minimum space for a line i in the file
@@ -23,11 +31,11 @@ fn get_min_space(root: &FuncSpace, i: usize) -> FuncSpace {
 // Return the value in case of success and an specif error in case of fails
 pub(crate) fn wcc_plain_function(
     space: &FuncSpace,
-    covs: &[Option<i32>],
-    comp: f64,
+    lines_coverage: &[Option<i32>],
+    complexity: f64,
 ) -> Result<(f64, f64, f64)> {
     let sloc = space.metrics.loc.sloc();
-    let sum = covs
+    let sum = lines_coverage
         .iter()
         .enumerate()
         .try_fold(0., |acc, (i, line)| -> Result<f64> {
@@ -37,16 +45,53 @@ pub(crate) fn wcc_plain_function(
             if let Some(cov) = *line {
                 if cov > 0 && (start..end).contains(&i) {
                     // If the line is not null and is covered (cov>0) the add the complexity to the sum
-                    sum = acc + comp;
+                    sum = acc + complexity;
                 }
             }
 
             Ok(sum)
         })?;
-    // debug!("\nsum: {}\ncomp: {}\nploc: {}\nsloc: {}\ncovs_len: {}\ncomp * ploc: {}\nwcc: {}", round_sd(sum), round_sd(comp), round_sd(ploc), round_sd(space.metrics.loc.sloc()), covs.len(), round_sd(comp * ploc), round_sd((sum / (comp * ploc)) * 100.0));
-    let wcc_plain = (sum / (comp * sloc)) * 100.0;
+    let wcc_plain = (sum / (complexity * sloc)) * 100.0;
 
-    Ok((round_sd(wcc_plain), sum, comp * sloc))
+    Ok((round_sd(wcc_plain), sum, complexity * sloc))
+}
+
+// Computes both the raw and percentage weighted code coverage values for a given FuncSpace.
+pub(crate) fn wcc_func_space(
+    space: &FuncSpace,
+    lines_coverage: &[Option<i32>],
+    complexity: f64,
+) -> WccFuncSpace {
+    if complexity >= THRESHOLD || space.metrics.loc.sloc() == 0.0 {
+        return WccFuncSpace {
+            value: 0.0,
+            percentage: 0.0,
+        };
+    }
+    let covered_lines = LinesMetrics::get_covered_lines(space, lines_coverage);
+
+    WccFuncSpace {
+        value: covered_lines,
+        percentage: round_sd((covered_lines / space.metrics.loc.sloc()) * 100.0),
+    }
+}
+
+// Computes both the raw and percentage weighted code coverage values for a given file.
+pub(crate) fn wcc_file(
+    wcc: f64,
+    sloc: f64
+) -> WccFuncSpace {
+    if sloc == 0.0 {
+        return WccFuncSpace {
+            value: 0.0,
+            percentage: 0.0,
+        };
+    }
+
+    WccFuncSpace {
+        value: wcc,
+        percentage: round_sd((wcc / sloc) * 100.0),
+    }
 }
 
 // Calculate the WCC quantized value for a space
@@ -54,13 +99,13 @@ pub(crate) fn wcc_plain_function(
 // If the complexity of the block/file is 0 the value if wcc quantized is the coverage of the file
 pub(crate) fn wcc_quantized_function(
     space: &FuncSpace,
-    covs: &[Option<i32>],
+    lines_coverage: &[Option<i32>],
     metric: Complexity,
 ) -> Result<(f64, f64, f64)> {
     let sloc = space.metrics.loc.sloc();
     let sum =
     //For each line find the minimum space and get complexity value then sum 1 if comp>threshold  else sum 1
-        covs.iter()
+        lines_coverage.iter()
             .enumerate()
             .try_fold(0., |acc, (i, line)| -> Result<f64> {
                 let mut sum = acc;

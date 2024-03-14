@@ -1,69 +1,54 @@
 {% extends "base.html" %} {% block content %} {% for file in files %}
-<tr class="{% if file.metrics.is_complex %}complex{% endif %}">
-  <td onclick="toggleFunctionDetails('{{ loop.index0 }}')">
-    {% if file.file_path == 'Project' or file.file_path == 'Average' or
-    file.file_path == 'Min' or file.file_path == 'Max'%}
-    <span class="has-text-weight-bold">{{ file.file_path }}</span>
-    {% else %} {% if file.functions|length == 0 %}
-    <span class="icon">
-      <i class="fas fa-file"></i>
-    </span>
-    <span>{{ file.file_path }}</span>
-    {% else %}
+<tr class="{% if file[1].metrics.is_complex %}complex{% else %}not-complex{% endif %}">
+  <td>
     <span>
-      <i
-        class="fas fa-sm fa-chevron-right"
-        id="expand-icon-{{ loop.index0 }}"
-      ></i>
+      {% if file[1].functions|length == 0 %}
+      <span class="icon">
+        <i class="fas fa-file"></i>
+      </span>
+      {% else %}
+      <span>
+        <i
+          class="fas fa-sm fa-chevron-right"
+          id="expand-icon-{{ loop.index0 }}"
+          onclick="toggleFunctionDetails('{{ loop.index0 }}')"
+        ></i>
+      </span>
+      <span class="icon">
+        <i class="fas fa-file"></i>
+      </span>
+      {% endif %}
+      <a href="{{ file[0] }}">{{ file[1].name }}</a>
     </span>
-    <span class="icon">
-      <i class="fas fa-file"></i>
-    </span>
-    <a>{{ file.file_path }}</a>
-    {% endif %} {% endif %}
   </td>
-  <td class="has-text-centered">{{ file.metrics.coverage }}%</td>
-  <td class="has-text-centered">{{ file.metrics.complexity }}</td>
+  <td class="has-text-centered">{{ file[1].metrics.coverage }}%</td>
+  <td class="has-text-centered">{{ file[1].metrics.complexity }}</td>
   <td>
     <div class="progress-wrapper">
       <progress
-        class="progress is-medium {% if file.metrics.wcc_plain < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
-        value="{{ file.metrics.wcc_plain }}"
+        class="progress is-medium {% if file[1].metrics.wcc < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file[1].metrics.wcc }}"
         max="100"
       >
-        {{ file.metrics.wcc_plain }}%
+        {{ file[1].metrics.wcc }}%
       </progress>
       <p class="progress-value has-text-grey-dark">
-        {{ file.metrics.wcc_plain }}%
-      </p>
-    </div>
-  </td>
-  <td>
-    <div class="progress-wrapper is-4">
-      <progress
-        class="progress is-medium {% if file.metrics.wcc_quantized < thresholds[1] %}is-danger{% else %}is-success{% endif %}"
-        value="{{ file.metrics.wcc_quantized }}"
-        max="100"
-      >
-        {{ file.metrics.wcc_quantized }}
-      </progress>
-      <p class="progress-value has-text-grey-dark">
-        {{ file.metrics.wcc_quantized }}%
+        {{ file[1].metrics.wcc }}%
       </p>
     </div>
   </td>
   <td
-    class="{% if file.metrics.crap > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+    class="{% if file[1].metrics.crap > thresholds[1] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
   >
-    {{ file.metrics.crap }}
+    {{ file[1].metrics.crap }}
   </td>
   <td
-    class="{% if file.metrics.skunk > thresholds[3] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+    class="{% if file[1].metrics.skunk > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
   >
-    {{ file.metrics.skunk }}
+    {{ file[1].metrics.skunk }}
   </td>
 </tr>
-{% if file.functions|length != 0 %}
+{% if file[1].functions|length != 0 %}
 <tr id="details-{{ loop.index0 }}" class="is-hidden">
   <td colspan="7" class="has-background-white-ter">
     <table class="table is-fullwidth inner-table">
@@ -75,46 +60,34 @@
         </tr>
       </thead>
       <tbody>
-        {% for function in file.functions %}
-        <tr class="{% if function.metrics.is_complex %}complex{% endif %}">
+        {% for function in file[1].functions %}
+        <tr
+          class="{% if function.metrics.is_complex %}complex{% else %}not-complex{% endif %}"
+        >
           <td>{{ function.name }}</td>
           <td class="has-text-centered">{{ function.metrics.coverage }}%</td>
           <td class="has-text-centered">{{ function.metrics.complexity }}</td>
           <td>
             <div class="progress-wrapper">
               <progress
-                class="progress is-medium {% if function.metrics.wcc_plain < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
-                value="{{ function.metrics.wcc_plain }}"
+                class="progress is-medium {% if function.metrics.wcc < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+                value="{{ function.metrics.wcc }}"
                 max="100"
               >
-                {{ function.metrics.wcc_plain }}%
+                {{ function.metrics.wcc }}%
               </progress>
               <p class="progress-value has-text-grey-dark">
-                {{ function.metrics.wcc_plain }}%
-              </p>
-            </div>
-          </td>
-          <td>
-            <div class="progress-wrapper is-4">
-              <progress
-                class="progress is-medium {% if function.metrics.wcc_quantized < thresholds[1] %}is-danger{% else %}is-success{% endif %}"
-                value="{{ function.metrics.wcc_quantized }}"
-                max="100"
-              >
-                {{ function.metrics.wcc_quantized }}
-              </progress>
-              <p class="progress-value has-text-grey-dark">
-                {{ function.metrics.wcc_quantized }}%
+                {{ function.metrics.wcc }}%
               </p>
             </div>
           </td>
           <td
-            class="{% if function.metrics.crap > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+            class="{% if function.metrics.crap > thresholds[1] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
           >
             {{ function.metrics.crap }}
           </td>
           <td
-            class="{% if function.metrics.skunk > thresholds[3] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+            class="{% if function.metrics.skunk > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
           >
             {{ function.metrics.skunk }}
           </td>

@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::Path};
-
-use super::get_file_path;
+use std::{collections::HashMap, fs, path::{Path, PathBuf}};
 
 use crate::error::Result;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct CoverallsSourceFile {
-    pub(crate) name: String,
+    pub(crate) name: PathBuf,
     pub(crate) coverage: Vec<Option<i32>>,
 }
 
@@ -17,21 +15,20 @@ struct CoverallsJson {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct Coveralls(pub(crate) HashMap<String, CoverallsSourceFile>);
+pub(crate) struct Coveralls(pub(crate) HashMap<PathBuf, CoverallsSourceFile>);
 
 impl Coveralls {
-    pub(crate) fn new<A: AsRef<Path>>(json: String, project_path: A) -> Result<Coveralls> {
+    pub(crate) fn new<A: AsRef<Path>, B: AsRef<Path>>(json_path: A, project_path: B) -> Result<Coveralls> {
+        let json = fs::read_to_string(json_path)?;
         let coveralls_json: CoverallsJson = serde_json::from_str(&json)?;
         let mut coveralls = Coveralls(HashMap::new());
 
         coveralls_json
             .source_files
             .into_iter()
-            .try_for_each(|file| -> Result<()> {
-                let file_path = get_file_path(&project_path, &file.name)?;
-                coveralls.0.insert(file_path, file);
-                Ok(())
-            })?;
+            .for_each(|file| {
+                coveralls.0.insert(project_path.as_ref().to_path_buf().join(&file.name), file);
+            });
 
         Ok(coveralls)
     }
@@ -47,8 +44,7 @@ mod tests {
 
     #[test]
     fn test_coveralls() {
-        let json = fs::read_to_string(COVERALLS_PATH).unwrap();
-        let coveralls = Coveralls::new(json, Path::new("./project/path/")).unwrap();
+        let coveralls = Coveralls::new(COVERALLS_PATH, Path::new("./project/path/")).unwrap();
 
         insta::with_settings!({sort_maps => true}, {
             insta::assert_yaml_snapshot!(coveralls, @r###"

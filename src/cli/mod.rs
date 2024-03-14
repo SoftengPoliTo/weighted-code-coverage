@@ -41,7 +41,7 @@ where
 {
     let pos = s
         .find(':')
-        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{s}`"))?;
+        .ok_or_else(|| format!("invalid KEY:value: no `:` found in `{s}`"))?;
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
@@ -62,13 +62,13 @@ pub(crate) struct Args {
     #[clap(long, required = true, value_hint = clap::ValueHint::DirPath)]
     pub(crate) project_path: PathBuf,
     /// Path of the grcov json file with coveralls format
-    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::<&str>::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
+    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::<PathBuf>::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
     coveralls: Option<GrcovFormat<PathBuf>>,
     /// Path of the grcov json file with covdir format
-    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::<&str>::covdir_parser, value_hint = clap::ValueHint::DirPath)]
+    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::<PathBuf>::covdir_parser, value_hint = clap::ValueHint::DirPath)]
     covdir: Option<GrcovFormat<PathBuf>>,
     /// Choose complexity metric to use along with thresholds values
-    #[clap(long, short = 'c', default_value = "cyclomatic:50.0,0.7,65.0,45.0", value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
+    #[clap(long, short = 'c', default_value = "cyclomatic:60.0,30.0,30.0", value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
     complexity: (Complexity, Thresholds),
     /// Number of threads to use for concurrency
     #[clap(long, short = 't', default_value_t = (rayon::current_num_threads() - 1).max(1))]

@@ -1,36 +1,16 @@
-use rust_code_analysis::FuncSpace;
+use super::round_sd;
 
-use crate::{concurrent::round_sd, error::*};
+pub(crate) const COMPLEXITY_FACTOR: f64 = 25.0;
 
-use super::get_covered_lines;
-
-const COMPLEXITY_FACTOR: f64 = 25.0;
-
-// Calculate the Skunkscore value for a space
+// Computes the Skunk score given coverage and complexity of a FuncSpace.
+// This implementation ignores code smells.
 // https://www.fastruby.io/blog/code-quality/intruducing-skunk-stink-score-calculator.html
-// In this implementation the code smells are ignored.
-// Return the value in case of success and an specif error in case of fails
-pub(crate) fn skunk_nosmells_function(
-    space: &FuncSpace,
-    covs: &[Option<i32>],
-    coverage: Option<f64>,
-    comp: f64,
-) -> Result<f64> {
-    let cov = if let Some(coverage) = coverage {
-        coverage / 100.0
+pub(crate) fn skunk(coverage: f64, complexity: f64) -> f64 {
+    let skunk = if coverage == 100.0 {
+        complexity / COMPLEXITY_FACTOR
     } else {
-        let (covered_lines, tot_lines) = get_covered_lines(covs, space.start_line, space.end_line)?;
-        if tot_lines != 0. {
-            covered_lines / tot_lines
-        } else {
-            0.0
-        }
-    };
-    let skunk = if cov == 100. {
-        comp / COMPLEXITY_FACTOR
-    } else {
-        (comp / COMPLEXITY_FACTOR) * (100. - (100. * cov))
+        (complexity / COMPLEXITY_FACTOR) * (100. - (100. * coverage))
     };
 
-    Ok(round_sd(skunk))
+    round_sd(skunk)
 }

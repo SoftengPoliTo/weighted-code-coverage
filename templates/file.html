@@ -94,17 +94,17 @@
 
       .fa-chevron-down:hover {
         cursor: pointer;
-      }
+      }      
     </style>
     <script src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
     <script>
-      function toggleFunctionDetails(rowId) {
-        var details = document.getElementById("details-" + rowId);
+      function toggleFunctionDetails() {
+        var details = document.getElementById("details");
         if (details) {
           details.classList.toggle("is-hidden");
         }
 
-        var icon = document.getElementById("expand-icon-" + rowId);
+        var icon = document.getElementById("expand-icon");
         if (icon) {
           if (icon.classList.contains("fa-chevron-right")) {
             icon.classList.remove("fa-chevron-right");
@@ -132,7 +132,6 @@
 
     <section class="section">
       <div class="container">
-        <h4 class="title is-4">Files</h4>
         <table class="table is-fullwidth">
           <thead>
             <tr>
@@ -160,89 +159,103 @@
             </tr>
           </thead>
           <tbody>
-            {% block content %}{% endblock %} {% for file in ignored_files %}
-            <tr>
-              <td class="has-text-grey">
+            <tr class="{% if file.metrics.is_complex %}complex{% else %}not-complex{% endif %}">
+              <td>
+                {% if file.functions|length == 0 %}
                 <span class="icon">
                   <i class="fas fa-file"></i>
                 </span>
-                <span>{{ file }}</span>
+                {% else %}
+                <span onclick="toggleFunctionDetails()">
+                  <i class="fas fa-sm fa-chevron-right" id="expand-icon"></i>
+                </span>
+                <span class="icon">
+                  <i class="fas fa-file"></i>
+                </span>
+                {% endif %}
+                <span>{{ file.name }}</span>
               </td>
-              <td class="has-text-centered"></td>
-              <td class="has-text-centered"></td>
-              <td class="has-text-centered has-text-grey">Ignored</td>
-              <td class="has-text-centered"></td>
-              <td class="has-text-centered"></td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <h4 class="title is-4">Project</h4>
-        <table class="table is-fullwidth">
-          <thead>
-            <tr>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6"></h6>
-              </th>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6">Coverage</h6>
-              </th>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6">Complexity</h6>
-              </th>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6">Wcc</h6>
-                <h6 class="subtitle is-6">( &gt; {{ thresholds[0] }}% )</h6>
-              </th>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6">CRAP</h6>
-                <h6 class="subtitle is-6">( &lt; {{ thresholds[1] }} )</h6>
-              </th>
-              <th class="has-text-centered th-bg">
-                <h6 class="title is-6">Skunk</h6>
-                <h6 class="subtitle is-6">( &lt; {{ thresholds[2] }} )</h6>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for metric in project_metrics %}
-            <tr>
-              <td class="has-text-weight-medium">
-                <span>{{ metric[0] }}</span>
-              </td>
-              <td class="has-text-centered">{{ metric[1].coverage }}%</td>
-              <td class="has-text-centered">{{ metric[1].complexity }}</td>
+              <td class="has-text-centered">{{ file.metrics.coverage }}%</td>
+              <td class="has-text-centered">{{ file.metrics.complexity }}</td>
               <td>
                 <div class="progress-wrapper">
                   <progress
-                    class="progress is-medium {% if metric[1].wcc < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
-                    value="{{ metric[1].wcc }}"
+                    class="progress is-medium {% if file.metrics.wcc < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+                    value="{{ file.metrics.wcc }}"
                     max="100"
                   >
-                    {{ metric[1].wcc }}%
+                    {{ file.metrics.wcc }}%
                   </progress>
                   <p class="progress-value has-text-grey-dark">
-                    {{ metric[1].wcc }}%
+                    {{ file.metrics.wcc }}%
                   </p>
                 </div>
               </td>
               <td
-                class="{% if metric[1].crap > thresholds[1] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+                class="{% if file.metrics.crap > thresholds[1] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
               >
-                {{ metric[1].crap }}
+                {{ file.metrics.crap }}
               </td>
               <td
-                class="{% if metric[1].skunk > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+                class="{% if file.metrics.skunk > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
               >
-                {{ metric[1].skunk }}
+                {{ file.metrics.skunk }}
               </td>
             </tr>
-            {% endfor %}
+            <tr id="details" class="is-hidden">
+              <td colspan="7" class="has-background-white-ter">
+                <table class="table is-fullwidth inner-table">
+                  <thead>
+                    <tr>
+                      <th>
+                        <h6 class="title is-6 has-text-weight-bold">
+                          Functions
+                        </h6>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for function in file.functions %}
+                    <tr
+                      class="{% if function.metrics.is_complex %}complex{% else %}not-complex{% endif %}"
+                    >
+                      <td>{{ function.name }}</td>
+                      <td class="has-text-centered">
+                        {{ function.metrics.coverage }}%
+                      </td>
+                      <td class="has-text-centered">
+                        {{ function.metrics.complexity }}
+                      </td>
+                      <td>
+                        <div class="progress-wrapper">
+                          <progress
+                            class="progress is-medium {% if function.metrics.wcc < thresholds[0] %}is-danger{% else %}is-success{% endif %}"
+                            value="{{ function.metrics.wcc }}"
+                            max="100"
+                          >
+                            {{ function.metrics.wcc }}%
+                          </progress>
+                          <p class="progress-value has-text-grey-dark">
+                            {{ function.metrics.wcc }}%
+                          </p>
+                        </div>
+                      </td>
+                      <td
+                        class="{% if function.metrics.crap > thresholds[1] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+                      >
+                        {{ function.metrics.crap }}
+                      </td>
+                      <td
+                        class="{% if function.metrics.skunk > thresholds[2] %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered"
+                      >
+                        {{ function.metrics.skunk }}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
