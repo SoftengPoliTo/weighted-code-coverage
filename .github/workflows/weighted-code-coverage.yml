@@ -115,7 +115,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ~/wcc-output/index.html
+          path: '.'
+          # path: ~/wcc-output/index.html
 
       - name: Deploy to GitHub Pages
         id: deployment
