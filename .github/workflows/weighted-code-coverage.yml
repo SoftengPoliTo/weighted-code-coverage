@@ -43,80 +43,391 @@ permissions:
   id-token: write
 
 jobs:
+  ################################## LEGAL AND FORMAT LAYER ######################
+
+  # clippy-rustfmt:
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - uses: actions/checkout@v4
+
+  #   - name: Install Rust stable
+  #     uses: dtolnay/rust-toolchain@stable
+  #     with:
+  #       components: clippy, rustfmt
+
+  #   - name: Run rustfmt
+  #     run:
+  #       cargo fmt --all -- --check --verbose
+
+  #   - name: Run cargo clippy
+  #     uses: giraffate/clippy-action@v1
+  #     with:
+  #       github_token: ${{ secrets.GITHUB_TOKEN }}
+  #       clippy_flags: --all-targets -- -D warnings
+  #       reporter: github-pr-check
+
+  ################################## BUILD AND DOCS LAYER ########################
+
+  # build:
+
+  #   needs: clippy-rustfmt
+
+  #   strategy:
+  #     matrix:
+  #       platform: [ubuntu-latest, macos-latest, windows-latest]
+
+  #   runs-on: ${{ matrix.platform }}
+
+  #   steps:
+  #   - uses: actions/checkout@v4
+
+  #   - name: Install Rust stable
+  #     uses: dtolnay/rust-toolchain@stable
+
+  #   - name: Build
+  #     run: cargo build --verbose
+
+  # docs:
+
+  #   needs: clippy-rustfmt
+
+  #   strategy:
+  #     matrix:
+  #       platform: [ubuntu-latest, macos-latest, windows-latest]
+
+  #   runs-on: ${{ matrix.platform }}
+
+  #   steps:
+  #   - uses: actions/checkout@v4
+
+  #   - name: Install Rust stable
+  #     uses: dtolnay/rust-toolchain@stable
+
+  #   - name: Generate docs
+  #     run: cargo doc --verbose --no-deps
+
   ################################## CODE COVERAGE LAYER ##################################
+
+  # code-coverage:
+
+  #   needs: [build, docs]
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - uses: actions/checkout@v4
+
+  #   - name: Install Rust stable
+  #     uses: dtolnay/rust-toolchain@stable
+  #     with:
+  #       components: llvm-tools-preview
+
+  #   - name: Install grcov
+  #     env:
+  #       GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+  #       GRCOV_VERSION: v0.8.13
+  #     run: |
+  #       curl -L "$GRCOV_LINK/$GRCOV_VERSION/grcov-x86_64-unknown-linux-musl.tar.bz2" |
+  #       tar xj -C $HOME/.cargo/bin
+
+  #   - name: Run tests
+  #     env:
+  #       RUSTFLAGS: "-Cinstrument-coverage"
+  #       LLVM_PROFILE_FILE: "weighted-code-coverage-%p-%m.profraw"
+  #     run: |
+  #       cargo test --verbose
+
+  #   - name: Get coverage data for codecov
+  #     run: |
+  #       grcov . --binary-path ./target/debug/ -s . -t lcov --branch \
+  #             --ignore-not-existing --ignore "/*" --ignore "../*" \
+  #             --ignore "templates/*" -o lcov.info
+
+  #   - name: Codecov upload
+  #     uses: codecov/codecov-action@v4
+  #     with:
+  #       files: lcov.info
+  #       token: ${{ secrets.CODECOV_TOKEN }}
+
+  # weighted-code-coverage:
+
+  #   needs: [build, docs]
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - uses: actions/checkout@v4
+
+  #   - name: Install Rust stable
+  #     uses: dtolnay/rust-toolchain@stable
+  #     with:
+  #       components: llvm-tools-preview
+
+  #   - name: Install grcov
+  #     env:
+  #       GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+  #       GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
+  #     run: |
+  #       curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
+  #       tar xj -C $HOME/.cargo/bin
+
+  #   - name: Install weighted-code-coverage
+  #     env:
+  #       WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
+  #     run: |
+  #       curl -L "$WCC_LINK/v$WCC_VERSION/weighted-code-coverage-$WCC_VERSION-x86_64-unknown-linux-gnu.tar.gz" |
+  #       tar xz -C $HOME/.cargo/bin
+
+  #   - name: Run tests
+  #     env:
+  #       RUSTFLAGS: "-Cinstrument-coverage"
+  #       LLVM_PROFILE_FILE: "weighted-code-coverage-%p-%m.profraw"
+  #     run: |
+  #       cargo test --verbose
+
+  #   - name: Run grcov
+  #     run: |
+  #       grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN -o coveralls.json
+
+  #   - name: Run weighted-code-coverage
+  #     run: |
+  #       mkdir $HOME/wcc-output
+  #       weighted-code-coverage -p src/ -j coveralls.json -c cyclomatic --json $HOME/wcc-output/out.json
+
+  #   - name: Upload weighted-code-coverage data
+  #     uses: actions/upload-artifact@v3
+  #     with:
+  #       name: weighted-code-coverage-ubuntu
+  #       path: ~/wcc-output/out.json
+
   weighted-code-coverage:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  environment:
+    name: github-pages
+    url: ${{ steps.deployment.outputs.page_url }}
 
-    runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
+    - name: Install Rust stable
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: llvm-tools-preview
 
-      - name: Install grcov
-        env:
-          GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
-          GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
-        run: |
-          curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
-          tar xj -C $HOME/.cargo/bin
+    - name: Install grcov
+      env:
+        GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+        GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
+      run: |
+        curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
+        tar xj -C $HOME/.cargo/bin
 
-      - name: Install weighted-code-coverage
-        env:
-          WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
-          WCC_VERSION: v0.2.0
-          WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
-        run: |
-          git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
+    - name: Install weighted-code-coverage
+      env:
+        WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
+        WCC_VERSION: v0.2.0
+        WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
+      run: |
+        git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
 
-      - name: Install llvm-tools-preview
-        run: |
-          rustup component add llvm-tools-preview
+    - name: Install llvm-tools-preview
+      run: |
+        rustup component add llvm-tools-preview
 
-      # Not necessary on a newly created image, but strictly advised
-      - name: Run cargo clean
-        run: |
-          cargo clean
+    # Not necessary on a newly created image, but strictly advised
+    - name: Run cargo clean
+      run: |
+        cargo clean
 
-      - name: Run tests
-        env:
-          RUSTFLAGS: "-Cinstrument-coverage"
-          LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
-        run: |
-          cargo test --verbose
+    - name: Run tests
+      env:
+        RUSTFLAGS: "-Cinstrument-coverage"
+        LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
+      run: |
+        cargo test --verbose
 
-      - name: Run grcov
-        run: |
-          grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
+    - name: Run grcov
+      run: |
+        grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
 
-      - name: Run weighted-code-coverage
-        run: |
-          mkdir $HOME/wcc-output
-          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
+    - name: Run weighted-code-coverage
+      run: |
+        mkdir $HOME/wcc-output
+        cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
 
-      - name: Upload weighted-code-coverage data
-        uses: actions/upload-artifact@v3
-        with:
-          name: reportwcc
-          path: |
-            ~/wcc-output/index.html
+    - name: Upload weighted-code-coverage data
+      uses: actions/upload-artifact@v3
+      with:
+        name: reportwcc
+        path: |
+          ~/wcc-output/index.html
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4.0.0
-        with:
-          enablement: true
+    - name: Setup Pages
+      uses: actions/configure-pages@v4.0.0
+      with:
+        enablement: true
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3.0.1
-        with:
-          path: ~/wcc-output/index.html
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3.0.1
+      with:
+        path: ~/wcc-output/index.html
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4.0.4
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4.0.4
+      
+################################## DEPENDENCY LAYER ###########################
+
+# audit:
+
+#   needs: [code-coverage, weighted-code-coverage]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Check dependencies changes
+#     uses: dorny/paths-filter@v2
+#     id: changes
+#     with:
+#       filters: |
+#         cargo:
+#           - 'Cargo.toml'
+#           - 'Cargo.lock'
+
+#   - name: Run cargo-audit
+#     if: steps.changes.outputs.cargo == 'true'
+#     uses: actions-rs/audit-check@v1
+#     with:
+#       token: ${{ secrets.GITHUB_TOKEN }}
+
+# deny:
+
+#   needs: [code-coverage, weighted-code-coverage]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Check dependencies changes
+#     uses: dorny/paths-filter@v2
+#     id: changes
+#     with:
+#       filters: |
+#         cargo:
+#           - 'Cargo.toml'
+#           - 'Cargo.lock'
+
+#   - name: Detect multiple versions of the same crate
+#     if: steps.changes.outputs.cargo == 'true'
+#     uses: EmbarkStudios/cargo-deny-action@v1
+#     with:
+#       command: check bans
+
+# udeps:
+
+#   needs: [code-coverage, weighted-code-coverage]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Check dependencies changes
+#     uses: dorny/paths-filter@v2
+#     id: changes
+#     with:
+#       filters: |
+#         cargo:
+#           - 'Cargo.toml'
+#           - 'Cargo.lock'
+
+#   - name: Install Rust nightly
+#     if: steps.changes.outputs.cargo == 'true'
+#     uses: dtolnay/rust-toolchain@nightly
+
+#   - name: Install cargo-udeps
+#     if: steps.changes.outputs.cargo == 'true'
+#     env:
+#       UDEPS_LINK: https://github.com/est31/cargo-udeps/releases/download
+#     run: |
+#       curl -L "$UDEPS_LINK/v$UDEPS_VERSION/cargo-udeps-v$UDEPS_VERSION-x86_64-unknown-linux-gnu.tar.gz" |
+#       tar xz -C $HOME/.cargo/bin --strip-components 2
+
+#   - name: Run cargo-udeps
+#     if: steps.changes.outputs.cargo == 'true'
+#     run: |
+#       cargo +nightly udeps --all-targets
+
+################################## UNSAFE CHECKS LEVEL #########################
+
+# valgrind:
+
+#   needs: [audit, deny, udeps]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Install valgrind
+#     run: |
+#       sudo apt-get install valgrind
+
+#   - name: Run cargo-valgrind
+#     env:
+#       CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "valgrind -s --leak-check=full --show-leak-kinds=all --error-exitcode=1"
+#     # Looking for vulnerabilities
+#     run: |
+#       cargo test
+
+# careful:
+
+#   needs: [audit, deny, udeps]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Install Rust nightly
+#     uses: dtolnay/rust-toolchain@nightly
+#     with:
+#       components: rust-src
+
+#   - name: Install cargo-careful
+#     env:
+#       CAREFUL_LINK: https://github.com/RalfJung/cargo-careful/releases/download
+#     run: |
+#       curl -L "$CAREFUL_LINK/v$CAREFUL_VERSION/cargo-careful.x86_64-unknown-linux-musl" \
+#       --output $HOME/.cargo/bin/cargo-careful
+#       chmod +x $HOME/.cargo/bin/cargo-careful
+
+#   - name: Run cargo-careful
+#     run: |
+#       cargo +nightly careful test
+
+# address-sanitizer:
+
+#   needs: [audit, deny, udeps]
+
+#   runs-on: ubuntu-latest
+
+#   steps:
+#   - uses: actions/checkout@v4
+
+#   - name: Install Rust nightly
+#     uses: dtolnay/rust-toolchain@nightly
+#     with:
+#       components: rust-src
+
+#   - name: Run AddressSanitizer
+#     env:
+#       RUSTFLAGS: -Zsanitizer=address -Copt-level=3
+#       RUSTDOCFLAGS: -Zsanitizer=address
+#     run: cargo test -Zbuild-std --target x86_64-unknown-linux-gnu
