@@ -5,7 +5,9 @@ use super::Metrics;
 /// Metrics of a function.
 #[derive(Debug, Clone, Serialize)]
 pub struct FunctionMetrics {
+    /// Function name.
     pub name: String,
+    /// Function metrics.
     pub metrics: Metrics,
 }
 

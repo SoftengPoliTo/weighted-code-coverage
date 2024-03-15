@@ -11,20 +11,17 @@ use crate::error::*;
 #[derive(Debug, Serialize)]
 pub(crate) struct CovdirSourceFile {
     pub(crate) coverage: Vec<Option<i32>>,
-    pub(crate) coverage_percent: f64,
+    coverage_percent: f64,
 }
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Covdir {
     pub(crate) source_files: HashMap<PathBuf, CovdirSourceFile>,
-    pub(crate) total_coverage: f64,
+    total_coverage: f64,
 }
 
 impl Covdir {
-    pub(crate) fn new<A: AsRef<Path>, B: AsRef<Path>>(
-        json_path: A,
-        project_path: B,
-    ) -> Result<Covdir> {
+    pub(crate) fn new(json_path: &Path, project_path: &Path) -> Result<Covdir> {
         let json = fs::read_to_string(json_path)?;
         let covdir_value: Value = serde_json::from_str(&json)?;
         let mut source_files = HashMap::new();
@@ -42,10 +39,10 @@ impl Covdir {
     //
     // This function does an in-depth search,
     // exploring all directories and subdirectories.
-    fn get_source_files<A: AsRef<Path>>(
+    fn get_source_files(
         covdir_value: &Value,
         source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
-        project_path: A,
+        project_path: &Path,
     ) -> Result<()> {
         let mut stack = Vec::<(&Value, PathBuf)>::new();
         stack.push((covdir_value, PathBuf::new()));
@@ -59,7 +56,7 @@ impl Covdir {
                     &mut stack,
                 )?;
             } else {
-                Self::handle_file_value(current_value, current_path, &project_path, source_files)?;
+                Self::handle_file_value(current_value, current_path, project_path, source_files)?;
             }
         }
 
@@ -85,10 +82,10 @@ impl Covdir {
     }
 
     // Handle the case where the json `&Value` popped from the stack is a source file.
-    fn handle_file_value<A: AsRef<Path>>(
+    fn handle_file_value(
         file_value: &Value,
         mut current_path: PathBuf,
-        project_path: A,
+        project_path: &Path,
         source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
     ) -> Result<()> {
         if let Some(name) = file_value.get("name").and_then(|n| n.as_str()) {
@@ -96,8 +93,8 @@ impl Covdir {
                 file_value.get("coverage").and_then(|c| c.as_array()),
                 file_value.get("coveragePercent").and_then(|cp| cp.as_f64()),
             ) {
-                current_path.push(name.to_string());
-                let file_path = get_file_path(project_path, current_path);
+                current_path.push(name);
+                let file_path = get_file_path(project_path, &current_path);
                 let coverage = parse_json_coverage(json_coverage);
                 let source_file = CovdirSourceFile {
                     coverage,
@@ -124,8 +121,8 @@ fn get_directory(covdir_json: &Value) -> Result<PathBuf> {
 }
 
 #[inline]
-fn get_file_path<A: AsRef<Path>, B: AsRef<Path>>(project_path: A, file_relative_path: B) -> PathBuf {
-    let file_path = project_path.as_ref().to_path_buf().join(file_relative_path);
+fn get_file_path(project_path: &Path, file_relative_path: &Path) -> PathBuf {
+    let file_path = project_path.to_path_buf().join(file_relative_path);
 
     PathBuf::from(file_path.to_string_lossy().replace('\\', "/"))
 }
@@ -157,28 +154,28 @@ mod tests {
 
     #[test]
     fn test_covdir() {
-        let covdir = Covdir::new(COVDIR_PATH, Path::new("./project/path/")).unwrap();
+        let covdir = Covdir::new(Path::new(COVDIR_PATH), Path::new("project/test/path")).unwrap();
 
         insta::with_settings!({sort_maps => true}, {
             insta::assert_yaml_snapshot!(covdir, @r###"
             ---
             source_files:
-              "./project/path/src/app.rs":
+              project/test/path/src/app.rs:
                 coverage:
-                  - -1
-                  - -1
+                  - ~
+                  - ~
                 coverage_percent: 86.62
-              "./project/path/src/inner_module/inner_module_file.rs":
+              project/test/path/src/inner_module/inner_module_file.rs:
                 coverage:
-                  - -1
-                  - -1
+                  - ~
+                  - ~
                 coverage_percent: 0
-              "./project/path/src/inner_module/mod.rs":
+              project/test/path/src/inner_module/mod.rs:
                 coverage:
                   - 0
-                  - -1
+                  - ~
                 coverage_percent: 0
-              "./project/path/src/lib.rs":
+              project/test/path/src/lib.rs:
                 coverage:
                   - 2
                 coverage_percent: 100

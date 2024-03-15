@@ -1,13 +1,10 @@
-use std::error::Error;
 use std::path::PathBuf;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
-use weighted_code_coverage::{
-    Complexity, GrcovFormat, Mode, OutputFormat, Sort, Thresholds, WccRunner,
-};
+use weighted_code_coverage::{Complexity, GrcovFormat, Mode, OutputFormat, Sort, WccRunner};
 
 const fn thresholds_long_help() -> &'static str {
     "Set the four thresholds in this order: -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK\n
@@ -29,20 +26,6 @@ fn select_json_format(
         _ => None,
     }
     .expect("An option should be set between `coveralls` and `covdir`")
-}
-
-// Parse a single key-value pair
-fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
-where
-    T: std::str::FromStr,
-    T::Err: Error + Send + Sync + 'static,
-    U: std::str::FromStr,
-    U::Err: Error + Send + Sync + 'static,
-{
-    let pos = s
-        .find(':')
-        .ok_or_else(|| format!("invalid KEY:value: no `:` found in `{s}`"))?;
-    Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
 #[derive(Parser, Debug)]
@@ -68,21 +51,21 @@ pub(crate) struct Args {
     #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::<PathBuf>::covdir_parser, value_hint = clap::ValueHint::DirPath)]
     covdir: Option<GrcovFormat<PathBuf>>,
     /// Choose complexity metric to use along with thresholds values
-    #[clap(long, short = 'c', default_value = "cyclomatic:60.0,30.0,30.0", value_parser = parse_key_val::<Complexity, Thresholds>, long_help = thresholds_long_help())]
-    complexity: (Complexity, Thresholds),
+    #[clap(long, short = 'c', default_value_t = Complexity::default(), value_parser = Complexity::parser, long_help = thresholds_long_help())]
+    complexity: Complexity,
     /// Number of threads to use for concurrency
     #[clap(long, short = 't', default_value_t = (rayon::current_num_threads() - 1).max(1))]
     threads: usize,
     /// Choose mode to use for analysis
-    #[clap(long, short = 'm', default_value = Mode::default_value(), value_parser = PossibleValuesParser::new(Mode::all())
+    #[clap(long, short = 'm', default_value_t = Mode::Files, value_parser = PossibleValuesParser::new(Mode::all())
         .map(|s| s.parse::<Mode>().unwrap()))]
     mode: Mode,
     /// Sort complex value with the chosen metric
-    #[clap(long, short = 's', default_value = Sort::default_value(), value_parser = PossibleValuesParser::new(Sort::all())
+    #[clap(long, short = 's', default_value_t = Sort::Wcc, value_parser = PossibleValuesParser::new(Sort::all())
         .map(|s| s.parse::<Sort>().unwrap()))]
     sort: Sort,
     /// Output file format
-    #[clap(long, default_value = OutputFormat::default_value(), value_parser = PossibleValuesParser::new(OutputFormat::all())
+    #[clap(long, default_value_t = OutputFormat::Json, value_parser = PossibleValuesParser::new(OutputFormat::all())
         .map(|s| s.parse::<OutputFormat>().unwrap()))]
     output_format: OutputFormat,
     /// Path of the output file

@@ -5,19 +5,19 @@ use minijinja::{context, path_loader, Environment};
 use serde::Serialize;
 
 use crate::concurrent::{files::FileMetrics, Metrics, ProjectMetrics, WccOutput};
-use crate::{error::*, Complexity, Mode, Thresholds};
+use crate::{error::*, Complexity, ComplexityType, Mode};
 
 pub(crate) trait WccPrinter {
     type Output;
 
     fn print(self) -> Self::Output;
-}   
+}
 
 #[derive(Serialize)]
 struct JsonOutput<'a> {
     project_path: &'a Path,
     mode: Mode,
-    complexity: &'a Complexity,
+    complexity: &'a ComplexityType,
     ignored_files_number: usize,
     complex_files_number: usize,
     files: &'a [FileMetrics],
@@ -27,10 +27,11 @@ struct JsonOutput<'a> {
 }
 
 impl<'a> JsonOutput<'a> {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         project_path: &'a Path,
         mode: Mode,
-        complexity: &'a Complexity,
+        complexity: &'a ComplexityType,
         ignored_files_number: usize,
         complex_files_number: usize,
         files: &'a [FileMetrics],
@@ -52,21 +53,21 @@ impl<'a> JsonOutput<'a> {
     }
 }
 
-pub(crate) struct JsonPrinter<'a, A: AsRef<Path>, B: AsRef<Path>> {
-    project_path: A,
+pub(crate) struct JsonPrinter<'a> {
+    project_path: &'a Path,
     wcc_output: &'a WccOutput,
-    output_path: B,
+    output_path: &'a Path,
     mode: Mode,
-    complexity: &'a Complexity,
+    complexity: &'a ComplexityType,
 }
 
-impl<'a, A: AsRef<Path>, B: AsRef<Path>> JsonPrinter<'a, A, B> {
+impl<'a> JsonPrinter<'a> {
     pub(crate) fn new(
-        project_path: A,
+        project_path: &'a Path,
         wcc_output: &'a WccOutput,
-        output_path: B,
+        output_path: &'a Path,
         mode: Mode,
-        complexity: &'a Complexity,
+        complexity: &'a ComplexityType,
     ) -> Self {
         Self {
             project_path,
@@ -95,7 +96,7 @@ impl<'a, A: AsRef<Path>, B: AsRef<Path>> JsonPrinter<'a, A, B> {
         let complex_files = self.get_complex_files();
 
         JsonOutput::new(
-            self.project_path.as_ref(),
+            self.project_path,
             self.mode,
             self.complexity,
             self.wcc_output.ignored_files.len(),
@@ -108,7 +109,7 @@ impl<'a, A: AsRef<Path>, B: AsRef<Path>> JsonPrinter<'a, A, B> {
     }
 }
 
-impl<A: AsRef<Path>, B: AsRef<Path>> WccPrinter for JsonPrinter<'_, A, B> {
+impl WccPrinter for JsonPrinter<'_> {
     type Output = Result<()>;
 
     fn print(self) -> Self::Output {
@@ -120,19 +121,19 @@ impl<A: AsRef<Path>, B: AsRef<Path>> WccPrinter for JsonPrinter<'_, A, B> {
     }
 }
 
-pub(crate) struct HtmlPrinter<'a, P: AsRef<Path>> {
+pub(crate) struct HtmlPrinter<'a> {
     wcc_output: &'a WccOutput,
-    output_path: P,
+    output_path: &'a Path,
     mode: Mode,
-    complexity: &'a (Complexity, Thresholds),
+    complexity: &'a Complexity,
 }
 
-impl<'a, P: AsRef<Path>> HtmlPrinter<'a, P> {
+impl<'a> HtmlPrinter<'a> {
     pub(crate) fn new(
         wcc_output: &'a WccOutput,
-        output_path: P,
+        output_path: &'a Path,
         mode: Mode,
-        complexity: &'a (Complexity, Thresholds),
+        complexity: &'a Complexity,
     ) -> Self {
         Self {
             wcc_output,
@@ -143,13 +144,12 @@ impl<'a, P: AsRef<Path>> HtmlPrinter<'a, P> {
     }
 
     fn format_project_metrics(&self) -> Vec<(&'static str, &Metrics)> {
-        let mut project_metrics = Vec::new();
-        project_metrics.push(("Total", &self.wcc_output.project.total));
-        project_metrics.push(("Min", &self.wcc_output.project.min));
-        project_metrics.push(("Max", &self.wcc_output.project.max));
-        project_metrics.push(("Average", &self.wcc_output.project.average));
-
-        project_metrics
+        vec![
+            ("Total", &self.wcc_output.project.total),
+            ("Min", &self.wcc_output.project.min),
+            ("Max", &self.wcc_output.project.max),
+            ("Average", &self.wcc_output.project.average),
+        ]
     }
 
     fn format_files(&self) -> Vec<(String, &FileMetrics)> {
@@ -157,15 +157,13 @@ impl<'a, P: AsRef<Path>> HtmlPrinter<'a, P> {
             .files
             .iter()
             .enumerate()
-            .map(|(file_number, metrics)| {
-                (format!("file_{}.html", file_number + 1), metrics)
-            })
+            .map(|(file_number, metrics)| (format!("file_{}.html", file_number + 1), metrics))
             .collect()
     }
 
     fn print_files(&self, env: &Environment) -> Result<String> {
         let template = env.get_template("files.html")?;
-        let output = template.render(context! { files => self.wcc_output.files, project_metrics => self.format_project_metrics(), mode => "Files", complexity => self.complexity.0, thresholds => self.complexity.1.0, ignored_files => self.wcc_output.ignored_files })?;
+        let output = template.render(context! { files => self.wcc_output.files, project_metrics => self.format_project_metrics(), mode => "Files", complexity => self.complexity.complexity_type, thresholds => self.complexity.thresholds.0, ignored_files => self.wcc_output.ignored_files })?;
 
         Ok(output)
     }
@@ -174,18 +172,18 @@ impl<'a, P: AsRef<Path>> HtmlPrinter<'a, P> {
         let files = self.format_files();
         let file_template = env.get_template("file.html")?;
         for file in &files {
-            let file_output = file_template.render(context! { file => file.1, mode => "Functions", complexity => self.complexity.0, thresholds => self.complexity.1.0 })?;
-            std::fs::write(self.output_path.as_ref().join(&file.0), file_output)?;
+            let file_output = file_template.render(context! { file => file.1, mode => "Functions", complexity => self.complexity.complexity_type, thresholds => self.complexity.thresholds.0 })?;
+            std::fs::write(self.output_path.join(&file.0), file_output)?;
         }
 
         let template = env.get_template("functions.html")?;
-        let output = template.render(context! { files => files, project_metrics => self.format_project_metrics(), mode => "Functions", complexity => self.complexity.0, thresholds => self.complexity.1.0, ignored_files => self.wcc_output.ignored_files })?;
+        let output = template.render(context! { files => files, project_metrics => self.format_project_metrics(), mode => "Functions", complexity => self.complexity.complexity_type, thresholds => self.complexity.thresholds.0, ignored_files => self.wcc_output.ignored_files })?;
 
         Ok(output)
     }
 }
 
-impl<'a, P: AsRef<Path>> WccPrinter for HtmlPrinter<'a, P> {
+impl WccPrinter for HtmlPrinter<'_> {
     type Output = Result<()>;
 
     fn print(self) -> Self::Output {
@@ -196,7 +194,7 @@ impl<'a, P: AsRef<Path>> WccPrinter for HtmlPrinter<'a, P> {
             Mode::Functions => self.print_functions(&env)?,
         };
 
-        std::fs::write(self.output_path.as_ref().join("index.html"), output)?;
+        std::fs::write(self.output_path.join("index.html"), output)?;
 
         Ok(())
     }

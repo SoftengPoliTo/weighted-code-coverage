@@ -9,6 +9,7 @@ use tracing::debug;
 
 use crate::error::{Error, Result};
 
+#[derive(Debug, Default)]
 pub(crate) struct LinesMetrics {
     pub(crate) total_lines: f64,
     pub(crate) covered_lines: f64,
@@ -35,27 +36,32 @@ impl LinesMetrics {
         }
     }
 
+    pub(crate) fn update(&mut self, other: LinesMetrics) {
+        self.total_lines += other.total_lines;
+        self.covered_lines += other.covered_lines;
+    }
+
     pub(crate) fn get_covered_lines(space: &FuncSpace, lines_coverage: &[Option<i32>]) -> f64 {
         Self::new(space, lines_coverage).covered_lines
     }
 }
 
-// Get the root FuncSpace from a file
-pub(crate) fn get_root<A: AsRef<Path>>(path: A) -> Result<FuncSpace> {
-    let source_code = read_file(path.as_ref())?;
-    let language = guess_language(&source_code, path.as_ref())
+// Get the root FuncSpace from a file.
+pub(crate) fn get_root(path: &Path) -> Result<FuncSpace> {
+    let source_code = read_file(path)?;
+    let language = guess_language(&source_code, path)
         .0
         .ok_or(Error::Language)?;
 
-    debug!("{:?} is written in {:?}", path.as_ref(), language);
+    debug!("{:?} is written in {:?}", path, language);
 
-    let root =
-        get_function_spaces(&language, source_code, path.as_ref(), None).ok_or(Error::Metrics)?;
+    let root = get_function_spaces(&language, source_code, path, None).ok_or(Error::Metrics)?;
 
     Ok(root)
 }
 
-// Round f64 to second decimal
+// Round f64 to second decimal.
+#[inline]
 pub(crate) fn round_sd(x: f64) -> f64 {
     (x * 100.0).round() / 100.0
 }

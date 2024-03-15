@@ -3,7 +3,7 @@ use std::{path::StripPrefixError, sync::PoisonError};
 use crossbeam::channel::SendError;
 use thiserror::Error;
 
-/// Customized error messages using thiserror library
+/// Customized error messages using thiserror library.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Error while reading Files from project folder")]

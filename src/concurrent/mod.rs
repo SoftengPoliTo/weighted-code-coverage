@@ -15,11 +15,13 @@ use crate::{
     error::{Error, Result},
     grcov::{covdir::Covdir, coveralls::Coveralls},
     metrics::{
-        crap::crap, get_root, round_sd,
+        crap::crap,
+        get_root, round_sd,
         skunk::skunk,
-        wcc::{wcc_file, wcc_func_space, WccFuncSpace}, LinesMetrics,
+        wcc::{wcc_file, wcc_func_space, WccFuncSpace},
+        LinesMetrics,
     },
-    Complexity, Mode, Sort,
+    ComplexityType, Mode, Sort,
 };
 
 use self::{files::FileMetrics, functions::FunctionMetrics};
@@ -96,29 +98,24 @@ pub(crate) enum Grcov {
 }
 
 impl Grcov {
-    fn get_lines_coverage<P: AsRef<Path>>(&self, file: P) -> Option<&[Option<i32>]> {
+    fn get_lines_coverage(&self, file: &Path) -> Option<&[Option<i32>]> {
         match self {
-            Grcov::Coveralls(coveralls) => Some(&coveralls.0.get(file.as_ref())?.coverage),
-            Grcov::Covdir(covdir) => Some(&covdir.source_files.get(file.as_ref())?.coverage),
+            Grcov::Coveralls(coveralls) => Some(&coveralls.0.get(file)?.coverage),
+            Grcov::Covdir(covdir) => Some(&covdir.source_files.get(file)?.coverage),
         }
     }
 
-    fn get_file_name<A: AsRef<Path>, B: AsRef<Path>>(
-        &self,
-        file: A,
-        project_path: B,
-    ) -> Result<String> {
+    fn get_file_name(&self, file: &Path, project_path: &Path) -> Result<String> {
         match self {
             Grcov::Coveralls(coveralls) => Ok(coveralls
                 .0
-                .get(file.as_ref())
+                .get(file)
                 .ok_or(Error::HashMap)?
                 .name
                 .to_str()
                 .ok_or(Error::Conversion)?
                 .to_string()),
             Grcov::Covdir(_) => Ok(file
-                .as_ref()
                 .to_path_buf()
                 .strip_prefix(project_path)?
                 .to_str()
@@ -131,12 +128,18 @@ impl Grcov {
 /// Metrics values.
 #[derive(Debug, Clone, Serialize)]
 pub struct Metrics {
+    /// Wcc.
     pub wcc: f64,
+    /// CRAP.
     pub crap: f64,
+    /// Skunk.
     pub skunk: f64,
+    /// Metrics complexity.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_complex: Option<bool>,
+    /// Coverage.
     pub coverage: f64,
+    /// Complexity.
     pub complexity: f64,
 }
 
@@ -166,9 +169,7 @@ pub struct ProjectMetrics {
     #[serde(skip_serializing)]
     n_files: f64,
     #[serde(skip_serializing)]
-    total_lines: f64,
-    #[serde(skip_serializing)]
-    covered_lines: f64,
+    lines_metrics: LinesMetrics,
     #[serde(skip_serializing)]
     sloc_sum: f64,
     #[serde(skip_serializing)]
@@ -183,9 +184,13 @@ pub struct ProjectMetrics {
     coverage_sum: f64,
     #[serde(skip_serializing)]
     complexity_sum: f64,
+    /// Overall values of project metrics.
     pub total: Metrics,
+    /// Minimum values of project metrics.
     pub min: Metrics,
+    /// Maximum values of project metrics.
     pub max: Metrics,
+    /// Average values of project metrics.
     pub average: Metrics,
 }
 
@@ -193,8 +198,7 @@ impl ProjectMetrics {
     fn new() -> Self {
         Self {
             n_files: 0.0,
-            total_lines: 0.0,
-            covered_lines: 0.0,
+            lines_metrics: LinesMetrics::default(),
             sloc_sum: 0.0,
             wcc_sum: 0.0,
             wcc_percentage_sum: 0.0,
@@ -209,10 +213,10 @@ impl ProjectMetrics {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn update(
         &mut self,
-        total_lines: f64,
-        covered_lines: f64,
+        lines_metrics: LinesMetrics,
         sloc: f64,
         wcc: WccFuncSpace,
         crap: f64,
@@ -221,8 +225,7 @@ impl ProjectMetrics {
         complexity: f64,
     ) {
         self.n_files += 1.0;
-        self.total_lines += total_lines;
-        self.covered_lines += covered_lines;
+        self.lines_metrics.update(lines_metrics);
         self.sloc_sum += sloc;
         self.wcc_sum += wcc.value;
         self.wcc_percentage_sum += wcc.percentage;
@@ -236,8 +239,7 @@ impl ProjectMetrics {
 
     fn merge(&mut self, other: ProjectMetrics) {
         self.n_files += other.n_files;
-        self.total_lines += other.total_lines;
-        self.covered_lines += other.covered_lines;
+        self.lines_metrics.update(other.lines_metrics);
         self.sloc_sum += other.sloc_sum;
         self.wcc_sum += other.wcc_sum;
         self.wcc_percentage_sum += other.wcc_percentage_sum;
@@ -278,7 +280,7 @@ impl ProjectMetrics {
     }
 
     fn commpute_total(&mut self) {
-        let project_coverage = self.covered_lines / self.total_lines;
+        let project_coverage = self.lines_metrics.covered_lines / self.lines_metrics.total_lines;
         self.total.wcc = round_sd((self.wcc_sum / self.sloc_sum) * 100.0);
         self.total.crap = round_sd(crap(project_coverage, self.complexity_sum));
         self.total.skunk = round_sd(skunk(project_coverage, self.complexity_sum));
@@ -298,31 +300,44 @@ impl ProjectMetrics {
 /// Output of the weighted code coverage.
 #[derive(Debug, Serialize)]
 pub struct WccOutput {
+    /// Files.
     pub files: Vec<FileMetrics>,
+    /// Project.
     pub project: ProjectMetrics,
+    /// Ignored files.
     pub ignored_files: Vec<String>,
 }
 
-pub(crate) struct Wcc<P: AsRef<Path>> {
-    project_path: P,
-    files: Vec<PathBuf>,
+impl WccOutput {
+    fn new(files: Vec<FileMetrics>, project: ProjectMetrics, ignored_files: Vec<String>) -> Self {
+        Self {
+            files,
+            project,
+            ignored_files,
+        }
+    }
+}
+
+pub(crate) struct Wcc<'a> {
+    project_path: &'a Path,
+    files: &'a [PathBuf],
     mode: Mode,
     grcov: Grcov,
-    metric: Complexity,
-    thresholds: Vec<f64>,
+    metric: ComplexityType,
+    thresholds: &'a [f64],
     files_metrics: Mutex<Vec<FileMetrics>>,
     ignored_files: Mutex<Vec<String>>,
     sort_by: Sort,
 }
 
-impl<'a, P: AsRef<Path>> Wcc<P> {
+impl<'a> Wcc<'a> {
     pub(crate) fn new(
-        project_path: P,
-        files: Vec<PathBuf>,
+        project_path: &'a Path,
+        files: &'a [PathBuf],
         mode: Mode,
         grcov: Grcov,
-        metric: Complexity,
-        thresholds: Vec<f64>,
+        metric: ComplexityType,
+        thresholds: &'a [f64],
         sort_by: Sort,
     ) -> Self {
         Self {
@@ -360,8 +375,8 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
 
     fn get_complexity(&self, func_space: &FuncSpace) -> f64 {
         match self.metric {
-            Complexity::Cyclomatic => func_space.metrics.cyclomatic.cyclomatic_sum(),
-            Complexity::Cognitive => func_space.metrics.cognitive.cognitive_sum(),
+            ComplexityType::Cyclomatic => func_space.metrics.cyclomatic.cyclomatic_sum(),
+            ComplexityType::Cognitive => func_space.metrics.cognitive.cognitive_sum(),
         }
     }
 
@@ -380,6 +395,30 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
         Ok(name)
     }
 
+    fn update_ignored_files(&self, file: &Path) -> Result<()> {
+        let mut ignored_files = self.ignored_files.lock()?;
+        ignored_files.push(
+            file.to_path_buf()
+                .strip_prefix(self.project_path)?
+                .to_str()
+                .ok_or(Error::Conversion)?
+                .to_string(),
+        );
+
+        Ok(())
+    }
+
+    fn sort_files_metrics(&self) -> Result<()> {
+        let mut files_metrics = self.files_metrics.lock()?;
+        files_metrics.sort_by(|a, b| match self.sort_by {
+            Sort::Wcc => b.metrics.wcc.total_cmp(&a.metrics.wcc),
+            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
+            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
+        });
+
+        Ok(())
+    }
+
     fn compute_functions_metrics(
         &self,
         functions: &[&FuncSpace],
@@ -394,19 +433,18 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
 
             if let Mode::Functions = self.mode {
                 let coverage = self.get_space_coverage(function, lines_coverage);
-                let coverage_percentage = round_sd(coverage * 100.0);
                 let crap = crap(coverage, complexity);
                 let skunk = skunk(coverage, complexity);
                 let is_complex = self.check_complexity(wcc.percentage, crap, skunk);
+                let function_name = self.function_name(function)?;
                 let metrics = Metrics::new(
                     wcc.percentage,
                     crap,
                     skunk,
                     Some(is_complex),
-                    coverage_percentage,
+                    round_sd(coverage * 100.0),
                     complexity,
                 );
-                let function_name = self.function_name(function)?;
                 functions_metrics.push(FunctionMetrics::new(function_name, metrics));
             }
 
@@ -417,29 +455,20 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
         Ok(())
     }
 
-    fn compute_file_metrics<F: AsRef<Path>>(
+    fn compute_file_metrics(
         &self,
-        file: F,
+        file: &Path,
         project_metrics: &mut ProjectMetrics,
     ) -> Result<()> {
-        let lines_coverage = match self.grcov.get_lines_coverage(&file) {
+        let lines_coverage = match self.grcov.get_lines_coverage(file) {
             Some(c) => c,
             None => {
-                let mut ignored_files = self.ignored_files.lock()?;
-                ignored_files.push(
-                    file.as_ref()
-                        .to_path_buf()
-                        .strip_prefix(self.project_path.as_ref())?
-                        .to_str()
-                        .ok_or(Error::Conversion)?
-                        .to_string(),
-                );
-
+                self.update_ignored_files(file)?;
                 return Ok(());
             }
         };
 
-        let root = get_root(&file)?;
+        let root = get_root(file)?;
         let functions = self.get_functions(&root);
         let mut wcc_sum = 0.0;
         let mut sloc_sum = 0.0;
@@ -460,7 +489,7 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
         let crap = crap(coverage, complexity);
         let skunk = skunk(coverage, complexity);
         let is_complex = self.check_complexity(wcc.percentage, crap, skunk);
-        let file_name = self.grcov.get_file_name(file, &self.project_path)?;
+        let file_name = self.grcov.get_file_name(file, self.project_path)?;
         let metrics = Metrics::new(
             wcc.percentage,
             crap,
@@ -475,8 +504,7 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
         };
 
         project_metrics.update(
-            lines_metrics.total_lines,
-            lines_metrics.covered_lines,
+            lines_metrics,
             sloc_sum,
             wcc,
             crap,
@@ -492,14 +520,14 @@ impl<'a, P: AsRef<Path>> Wcc<P> {
     }
 }
 
-impl<'a, P: AsRef<Path>> WccConcurrent for Wcc<P> {
-    type ProducerItem = PathBuf;
+impl<'a> WccConcurrent for Wcc<'a> {
+    type ProducerItem = &'a Path;
     type ConsumerItem = ProjectMetrics;
     type Output = WccOutput;
 
     fn producer(&self, sender: Sender<Self::ProducerItem>) -> Result<()> {
-        for f in &self.files {
-            sender.send(f.to_owned())?;
+        for f in self.files {
+            sender.send(f)?;
         }
 
         Ok(())
@@ -528,13 +556,14 @@ impl<'a, P: AsRef<Path>> WccConcurrent for Wcc<P> {
         project_metrics.compute_average();
         project_metrics.commpute_total();
 
-        let metrics = self.files_metrics.lock()?;
+        self.sort_files_metrics()?;
+        let files_metrics = self.files_metrics.lock()?;
         let ignored_files = self.ignored_files.lock()?;
 
-        Ok(WccOutput {
-            files: metrics.clone(),
-            project: project_metrics,
-            ignored_files: ignored_files.clone(),
-        })
+        Ok(WccOutput::new(
+            files_metrics.clone(),
+            project_metrics,
+            ignored_files.clone(),
+        ))
     }
 }
