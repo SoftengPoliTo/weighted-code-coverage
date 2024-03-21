@@ -290,7 +290,7 @@ jobs:
         with:
           name: reportwcc
           path: |
-            wcc-output
+            wcc-output/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4.0.0
@@ -300,7 +300,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.1
         with:
-          path: wcc-output/index.html
+          path: wcc-output
 
       - name: Deploy to GitHub Pages
         id: deployment
