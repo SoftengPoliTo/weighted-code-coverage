@@ -202,7 +202,6 @@ jobs:
   #       name: weighted-code-coverage-ubuntu
   #       path: ~/wcc-output/out.json
 
-
   ################################ NEW WCC ################################
   # weighted-code-coverage:
   #   environment:
@@ -283,9 +282,8 @@ jobs:
 
   badge:
     runs-on: ubuntu-latest
-    name: A job to test this action
-    steps:
 
+    steps:
       # Get current banch name to use it as dest directory
       - name: Extract branch name
         shell: bash
@@ -304,7 +302,7 @@ jobs:
         env:
           COVERAGE: 53.5%
           BADGE_PATH: ${{ steps.extract_branch.outputs.branch }}/test-badge.svg
-          BRANCH: badges
+          BRANCH: ci
 
       - uses: actions/checkout@v4
         with:
@@ -321,9 +319,9 @@ jobs:
         uses: emibcn/badge-action@v2.0.3
         id: badge
         with:
-          label: 'Test coverage'
+          label: "Test coverage"
           status: ${{ steps.coverage.outputs.lines }}
-          color: 'blue,555,daf'
+          color: "blue,555,daf"
           path: ${{ steps.coverage.outputs.path }}
 
       - name: Upload badge as artifact
