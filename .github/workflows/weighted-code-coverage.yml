@@ -338,7 +338,9 @@ jobs:
         with:
           label: "wcc"
           # status: ${{ steps.coverage.outputs.lines }}
-          color: "blue,555,daf"
+          status: "covered"
+          # color: "blue,555,daf"
+          color: "green"
           path: ${{ steps.coverage.outputs.path }}
 
       - name: Upload badge as artifact
