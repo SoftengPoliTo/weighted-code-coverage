@@ -151,7 +151,7 @@ grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_T
 Distributed under the terms of the MIT license - See LICENSE for details.
 
 <!-- Links -->
-[wcc]: https://github.com/SoftengPoliTo/weighted-code-coverage/deployments/github-pages
+[wcc]: https://softengpolito.github.io/weighted-code-coverage/
 
 <!-- Badges -->
 [wcc badge]: .github/badges/test-badge.svg
