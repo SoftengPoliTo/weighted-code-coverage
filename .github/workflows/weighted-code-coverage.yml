@@ -318,7 +318,7 @@ jobs:
           echo "branch=${BRANCH}" >> "${GITHUB_OUTPUT}"
         env:
           COVERAGE: 53.5%
-          BADGE_PATH: .github/workflows/badges/test-badge.svg
+          BADGE_PATH: .github/badges/test-badge.svg
           # BRANCH: ci
 
       - uses: actions/checkout@v4
