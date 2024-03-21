@@ -303,7 +303,7 @@ jobs:
       #     COVERAGE: 53.5%
       #     BADGE_PATH: ${{ steps.extract_branch.outputs.branch }}/test-badge.svg
       #     BRANCH: ci
-      
+
       - name: Prepare environment
         id: coverage
         run: |
@@ -318,7 +318,7 @@ jobs:
           echo "branch=${BRANCH}" >> "${GITHUB_OUTPUT}"
         env:
           COVERAGE: 53.5%
-          BADGE_PATH: .github/badges/test-badge.svg
+          BADGE_PATH: .github/badges/wcc.svg
           # BRANCH: ci
 
       - uses: actions/checkout@v4
@@ -336,8 +336,8 @@ jobs:
         uses: emibcn/badge-action@v2.0.3
         id: badge
         with:
-          label: "Test coverage"
-          status: ${{ steps.coverage.outputs.lines }}
+          label: "wcc"
+          # status: ${{ steps.coverage.outputs.lines }}
           color: "blue,555,daf"
           path: ${{ steps.coverage.outputs.path }}
 

@@ -152,6 +152,7 @@ Distributed under the terms of the MIT license - See LICENSE for details.
 
 <!-- Links -->
 [wcc]: https://softengpolito.github.io/weighted-code-coverage/
+<!-- https://<your-account>.github.io/{{ name }}/ -->
 
 <!-- Badges -->
-[wcc badge]: .github/badges/test-badge.svg
+[wcc badge]: .github/badges/wcc.svg
