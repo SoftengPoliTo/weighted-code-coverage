@@ -253,17 +253,43 @@ jobs:
         run: |
           grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
 
-      - name: Run weighted-code-coverage
+      # - name: Run weighted-code-coverage
+      #   run: |
+      #     mkdir $HOME/wcc-output
+      #     cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
+
+      # - name: Upload weighted-code-coverage data
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: reportwcc
+      #     path: |
+      #       ~/wcc-output/index.html
+
+      # - name: Setup Pages
+      #   uses: actions/configure-pages@v4.0.0
+      #   with:
+      #     enablement: true
+
+      # - name: Upload artifact
+      #   uses: actions/upload-pages-artifact@v3.0.1
+      #   with:
+      #     path: ~/wcc-output/index.html
+
+      # - name: Deploy to GitHub Pages
+      #   id: deployment
+      #   uses: actions/deploy-pages@v4.0.4
+
+    - name: Run weighted-code-coverage
         run: |
-          mkdir $HOME/wcc-output
-          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
+          mkdir wcc-output
+          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path ../wcc-output/
 
       - name: Upload weighted-code-coverage data
         uses: actions/upload-artifact@v3
         with:
           name: reportwcc
           path: |
-            ~/wcc-output/index.html
+            wcc-output/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4.0.0
@@ -273,7 +299,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3.0.1
         with:
-          path: ~/wcc-output/index.html
+          path: wcc-output/index.html
 
       - name: Deploy to GitHub Pages
         id: deployment
