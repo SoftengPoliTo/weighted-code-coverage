@@ -202,123 +202,102 @@ jobs:
   #       name: weighted-code-coverage-ubuntu
   #       path: ~/wcc-output/out.json
 
-  weighted-code-coverage:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
+  ################################ NEW WCC ################################
+  # weighted-code-coverage:
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+
+  #     - name: Install Rust stable
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         components: llvm-tools-preview
+
+  #     - name: Install grcov
+  #       env:
+  #         GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
+  #         GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
+  #       run: |
+  #         curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
+  #         tar xj -C $HOME/.cargo/bin
+
+  #     - name: Install weighted-code-coverage
+  #       env:
+  #         WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
+  #         WCC_VERSION: v0.2.0
+  #         WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
+  #       run: |
+  #         git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
+
+  #     - name: Install llvm-tools-preview
+  #       run: |
+  #         rustup component add llvm-tools-preview
+
+  #     # Not necessary on a newly created image, but strictly advised
+  #     - name: Run cargo clean
+  #       run: |
+  #         cargo clean
+
+  #     - name: Run tests
+  #       env:
+  #         RUSTFLAGS: "-Cinstrument-coverage"
+  #         LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
+  #       run: |
+  #         cargo test --verbose
+
+  #     - name: Run grcov
+  #       run: |
+  #         grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
+
+  #     - name: Run weighted-code-coverage
+  #       run: |
+  #         mkdir wcc-output
+  #         cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path ../wcc-output/
+
+  #     - name: Upload weighted-code-coverage data
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: reportwcc
+  #         path: |
+  #           wcc-output/index.html
+
+  #     - name: Setup Pages
+  #       uses: actions/configure-pages@v4.0.0
+  #       with:
+  #         enablement: true
+
+  #     - name: Upload artifact
+  #       uses: actions/upload-pages-artifact@v3.0.1
+  #       with:
+  #         path: wcc-output
+
+  #     - name: Deploy to GitHub Pages
+  #       id: deployment
+  #       uses: actions/deploy-pages@v4.0.4
+
+  badge:
     runs-on: ubuntu-latest
-
+    name: A job to test this action
     steps:
-      - uses: actions/checkout@v4
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
-
-      - name: Install grcov
-        env:
-          GRCOV_LINK: https://github.com/mozilla/grcov/releases/download
-          GRCOV_BINARY: grcov-x86_64-unknown-linux-musl.tar.bz2
-        run: |
-          curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
-          tar xj -C $HOME/.cargo/bin
-
-      - name: Install weighted-code-coverage
-        env:
-          WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
-          WCC_VERSION: v0.2.0
-          WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
-        run: |
-          git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git weighted-code-coverage
-
-      - name: Install llvm-tools-preview
-        run: |
-          rustup component add llvm-tools-preview
-
-      # Not necessary on a newly created image, but strictly advised
-      - name: Run cargo clean
-        run: |
-          cargo clean
-
-      - name: Run tests
-        env:
-          RUSTFLAGS: "-Cinstrument-coverage"
-          LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
-        run: |
-          cargo test --verbose
-
-      - name: Run grcov
-        run: |
-          grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
-
-      # - name: Run weighted-code-coverage
-      #   run: |
-      #     mkdir $HOME/wcc-output
-      #     cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path $HOME/wcc-output/
-
-      # - name: Upload weighted-code-coverage data
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: reportwcc
-      #     path: |
-      #       ~/wcc-output/index.html
-
-      # - name: Setup Pages
-      #   uses: actions/configure-pages@v4.0.0
-      #   with:
-      #     enablement: true
-
-      # - name: Upload artifact
-      #   uses: actions/upload-pages-artifact@v3.0.1
-      #   with:
-      #     path: ~/wcc-output/index.html
-
-      # - name: Deploy to GitHub Pages
-      #   id: deployment
-      #   uses: actions/deploy-pages@v4.0.4
-
-      - name: Run weighted-code-coverage
-        run: |
-          mkdir wcc-output
-          cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path ../wcc-output/
-
-      - name: Upload weighted-code-coverage data
-        uses: actions/upload-artifact@v3
-        with:
-          name: reportwcc
-          path: |
-            wcc-output/index.html
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4.0.0
-        with:
-          enablement: true
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3.0.1
-        with:
-          path: wcc-output
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4.0.4
-
-      # --------- Badge ---------
-
-       # Get current banch name to use it as dest directory
+      # Get current banch name to use it as dest directory
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_REF#refs/heads/}" >> "${GITHUB_OUTPUT}"
         id: extract_branch
-  
+
       - name: Prepare environment
         id: coverage
         run: |
           # Generates a GitHub Workflow output named `lines` with a coverage value
           echo "lines=${COVERAGE}" >> "${GITHUB_OUTPUT}"
-  
+
           # Output values to be used by other steps
           echo "path=${BADGE_PATH}" >> "${GITHUB_OUTPUT}"
           echo "branch=${BRANCH}" >> "${GITHUB_OUTPUT}"
@@ -326,17 +305,17 @@ jobs:
           COVERAGE: 53.5%
           BADGE_PATH: ${{ steps.extract_branch.outputs.branch }}/test-badge.svg
           BRANCH: badges
-  
+
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.coverage.outputs.branch }}
-  
+
       # Create the directory where badges will be saved, if needed
       - name: Create destination directory
         env:
           BADGE_PATH: ${{ steps.coverage.outputs.path }}
         run: mkdir -p "${BADGE_PATH%/*}"
-  
+
       # Use the output from the `coverage` step
       - name: Generate the badge SVG image
         uses: emibcn/badge-action@v2.0.3
@@ -346,14 +325,14 @@ jobs:
           status: ${{ steps.coverage.outputs.lines }}
           color: 'blue,555,daf'
           path: ${{ steps.coverage.outputs.path }}
-  
+
       - name: Upload badge as artifact
         uses: actions/upload-artifact@v4
         with:
           name: badge
           path: ${{ steps.coverage.outputs.path }}
           if-no-files-found: error
-  
+
       - name: Commit badge
         continue-on-error: true
         env:
