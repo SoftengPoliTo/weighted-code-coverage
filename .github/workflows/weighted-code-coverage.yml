@@ -203,6 +203,7 @@ jobs:
   #       path: ~/wcc-output/out.json
 
   weighted-code-coverage:
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -279,7 +280,7 @@ jobs:
       #   id: deployment
       #   uses: actions/deploy-pages@v4.0.4
 
-    - name: Run weighted-code-coverage
+      - name: Run weighted-code-coverage
         run: |
           mkdir wcc-output
           cd weighted-code-coverage && cargo run -- --project-path ../src/ --coveralls ../coveralls.json -m files --output-format html --output-path ../wcc-output/
