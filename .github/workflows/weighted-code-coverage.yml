@@ -340,7 +340,7 @@ jobs:
           # status: ${{ steps.coverage.outputs.lines }}
           status: "covered"
           # color: "blue,555,daf"
-          color: "green,fff,daf"
+          color: "green,fff"
           path: ${{ steps.coverage.outputs.path }}
 
       - name: Upload badge as artifact
