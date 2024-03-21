@@ -203,7 +203,6 @@ jobs:
   #       path: ~/wcc-output/out.json
 
   weighted-code-coverage:
-
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -306,6 +305,32 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4.0.4
 
+      # ---------- Badge ----------
+
+      - name: Generate the badge SVG image
+        uses: emibcn/badge-action@v2.0.3
+        with:
+          label: 'wcc'
+          status: '10%'
+          color: 'blue,555,daf'
+          path: .github/badges/wcc.svg
+
+      - name: Upload badge as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wcc-badge
+          path: .github/badges/wcc.svg
+          if-no-files-found: error
+
+      - name: Commit badge
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .github/badges/wcc.svg
+          git commit -m "Add WCC badge"
+          git push origin ${{ github.ref }}
 ################################## DEPENDENCY LAYER ###########################
 
 # audit:
