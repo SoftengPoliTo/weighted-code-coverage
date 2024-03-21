@@ -305,7 +305,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4.0.4
 
-      # ---------- Badge ----------
+      # --------- Badge ---------
 
       - name: Generate the badge SVG image
         uses: emibcn/badge-action@v2.0.3
