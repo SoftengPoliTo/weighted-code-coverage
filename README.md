@@ -1,5 +1,7 @@
 # Weighted Code Coverage
 
+[![Wcc][wcc badge]][wcc]
+
 This repository contains the implementations of some Weighted Code Coverage algorithms
 for some of the languages supported by rust-code-analysis.
 
@@ -147,3 +149,9 @@ grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_T
 ## License
 
 Distributed under the terms of the MIT license - See LICENSE for details.
+
+<!-- Links -->
+[wcc]: https://codecov.io/gh/SoftengPoliTo/weighted-code-coverage](https://softengpolito.github.io/weighted-code-coverage/
+
+<!-- Badges -->
+[wcc badge]: .github/badges/test-badge.svg
