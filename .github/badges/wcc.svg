@@ -7,7 +7,7 @@
   <mask id="m"><rect width="841" height="200" rx="30" fill="#FFF"/></mask>
   <g mask="url(#m)">
     <rect width="304" height="200" fill="#555"/>
-    <rect width="537" height="200" fill="#3C1" x="304"/>
+    <rect width="537" height="200" fill="url(#x)" x="304"/>
     <rect width="841" height="200" fill="url(#a)"/>
   </g>
   <g aria-hidden="true" fill="#fff" text-anchor="start" font-family="Verdana,DejaVu Sans,sans-serif" font-size="110">
@@ -17,4 +17,9 @@
     <text x="349" y="138" textLength="437">covered</text>
   </g>
   
+  <linearGradient id="x" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:#3C1" />
+    <stop offset="50%" style="stop-color:#fff" />
+    <stop offset="100%" style="stop-color:#daf" />
+  </linearGradient>
 </svg>
