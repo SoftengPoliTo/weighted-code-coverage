@@ -1,0 +1,1249 @@
+---
+source: tests/output_test.rs
+expression: output
+---
+files:
+  - name: examples/multiple_app.rs
+    metrics:
+      cyclomatic:
+        wcc: 0
+        crap: 63.8
+        skunk: 20
+        complexity: 7.5
+        isComplex: true
+      cognitive:
+        wcc: 0
+        crap: 9.8
+        skunk: 7.1
+        complexity: 2.7
+        isComplex: true
+      coverage: 0
+    functions:
+      - name: "add_action(73, 76)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 6
+            skunk: 5.3
+            complexity: 2
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+      - name: "add_command(78, 83)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+      - name: "hello_action(23, 51)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 272
+            skunk: 42.7
+            complexity: 16
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 72
+            skunk: 21.3
+            complexity: 8
+            isComplex: true
+          coverage: 0
+      - name: "hello_command(53, 71)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+      - name: "main(4, 21)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 6
+            skunk: 5.3
+            complexity: 2
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+  - name: examples/single_app.rs
+    metrics:
+      cyclomatic:
+        wcc: 0
+        crap: 7.8
+        skunk: 6.2
+        complexity: 2.3
+        isComplex: true
+      cognitive:
+        wcc: 0
+        crap: 3.1
+        skunk: 3.6
+        complexity: 1.3
+        isComplex: true
+      coverage: 0
+    functions:
+      - name: "action(23, 29)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 6
+            skunk: 5.3
+            complexity: 2
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 6
+            skunk: 5.3
+            complexity: 2
+            isComplex: true
+          coverage: 0
+      - name: "main(4, 21)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+  - name: src/app.rs
+    metrics:
+      cyclomatic:
+        wcc: 76
+        crap: 10.6
+        skunk: 12.6
+        complexity: 10.3
+        isComplex: false
+      cognitive:
+        wcc: 67.9
+        crap: 9.3
+        skunk: 11.2
+        complexity: 9.1
+        isComplex: false
+      coverage: 86.6
+    functions:
+      - name: "<anonymous>(236, 239)"
+        metrics:
+          cyclomatic:
+            wcc: 50
+            crap: 8.1
+            skunk: 9.2
+            complexity: 5
+            isComplex: true
+          cognitive:
+            wcc: 50
+            crap: 6
+            skunk: 7.3
+            complexity: 4
+            isComplex: true
+          coverage: 50
+      - name: "<anonymous>(248, 257)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          coverage: 100
+      - name: "<anonymous>(270, 293)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 9
+            skunk: 9
+            complexity: 9
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 10
+            skunk: 10
+            complexity: 10
+            isComplex: false
+          coverage: 100
+      - name: "<anonymous>(337, 343)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 6
+            skunk: 5.3
+            complexity: 2
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 20
+            skunk: 10.7
+            complexity: 4
+            isComplex: true
+          coverage: 0
+      - name: "<anonymous>(419, 433)"
+        metrics:
+          cyclomatic:
+            wcc: 70
+            crap: 8.3
+            skunk: 10.5
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 70
+            crap: 7
+            skunk: 9
+            complexity: 6
+            isComplex: false
+          coverage: 70
+      - name: "<anonymous>(486, 500)"
+        metrics:
+          cyclomatic:
+            wcc: 70
+            crap: 8.3
+            skunk: 10.5
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 70
+            crap: 7
+            skunk: 9
+            complexity: 6
+            isComplex: false
+          coverage: 70
+      - name: "<anonymous>(534, 548)"
+        metrics:
+          cyclomatic:
+            wcc: 70
+            crap: 8.3
+            skunk: 10.5
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 70
+            crap: 7
+            skunk: 9
+            complexity: 6
+            isComplex: false
+          coverage: 70
+      - name: "<anonymous>(581, 595)"
+        metrics:
+          cyclomatic:
+            wcc: 70
+            crap: 8.3
+            skunk: 10.5
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 70
+            crap: 7
+            skunk: 9
+            complexity: 6
+            isComplex: false
+          coverage: 70
+      - name: "action(161, 164)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "app_new_only_test(406, 415)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "author(51, 54)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "command(135, 148)"
+        metrics:
+          cyclomatic:
+            wcc: 45.5
+            crap: 6.6
+            skunk: 7.6
+            complexity: 4
+            isComplex: true
+          cognitive:
+            wcc: 45.5
+            crap: 6.6
+            skunk: 7.6
+            complexity: 4
+            isComplex: true
+          coverage: 45.5
+      - name: "command_help_text(329, 369)"
+        metrics:
+          cyclomatic:
+            wcc: 16
+            crap: 45.9
+            skunk: 19.2
+            complexity: 8
+            isComplex: true
+          cognitive:
+            wcc: 16
+            crap: 130.2
+            skunk: 33.6
+            complexity: 14
+            isComplex: true
+          coverage: 16
+      - name: "description(66, 69)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "flag(177, 184)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          coverage: 100
+      - name: "flag_help_text(260, 327)"
+        metrics:
+          cyclomatic:
+            wcc: 84.2
+            crap: 14.8
+            skunk: 17.7
+            complexity: 14
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 19.3
+            skunk: 22.7
+            complexity: 18
+            isComplex: true
+          coverage: 84.2
+      - name: "flag_only_app_test(533, 577)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 8
+            skunk: 8
+            complexity: 8
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 6
+            skunk: 6
+            complexity: 6
+            isComplex: false
+          coverage: 100
+      - name: "help_text(373, 398)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 5
+            skunk: 5
+            complexity: 5
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          coverage: 100
+      - name: "multiple_app_test(418, 482)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 8
+            skunk: 8
+            complexity: 8
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 6
+            skunk: 6
+            complexity: 6
+            isComplex: false
+          coverage: 100
+      - name: "new(34, 39)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "normalized_args(247, 258)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 5
+            skunk: 5
+            complexity: 5
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          coverage: 100
+      - name: "run(198, 230)"
+        metrics:
+          cyclomatic:
+            wcc: 81.8
+            crap: 11.7
+            skunk: 14.3
+            complexity: 11
+            isComplex: false
+          cognitive:
+            wcc: 81.8
+            crap: 9.5
+            skunk: 11.7
+            complexity: 9
+            isComplex: false
+          coverage: 81.8
+      - name: "select_command(234, 242)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 8
+            skunk: 8
+            complexity: 8
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 5
+            skunk: 5
+            complexity: 5
+            isComplex: false
+          coverage: 100
+      - name: "single_app_equal_notation_test(580, 622)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 8
+            skunk: 8
+            complexity: 8
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 6
+            skunk: 6
+            complexity: 6
+            isComplex: false
+          coverage: 100
+      - name: "single_app_test(485, 530)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 8
+            skunk: 8
+            complexity: 8
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 6
+            skunk: 6
+            complexity: 6
+            isComplex: false
+          coverage: 100
+      - name: "usage(81, 84)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "version(96, 99)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+  - name: src/command.rs
+    metrics:
+      cyclomatic:
+        wcc: 69.1
+        crap: 8.1
+        skunk: 9.9
+        complexity: 7.9
+        isComplex: false
+      cognitive:
+        wcc: 45.5
+        crap: 6.7
+        skunk: 8.2
+        complexity: 6.5
+        isComplex: true
+      coverage: 84.6
+    functions:
+      - name: "<anonymous>(145, 168)"
+        metrics:
+          cyclomatic:
+            wcc: 62.5
+            crap: 13.3
+            skunk: 14.6
+            complexity: 9
+            isComplex: false
+          cognitive:
+            wcc: 62.5
+            crap: 15.3
+            skunk: 16.3
+            complexity: 10
+            isComplex: false
+          coverage: 62.5
+      - name: "action(78, 81)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "alias(113, 120)"
+        metrics:
+          cyclomatic:
+            wcc: 83.3
+            crap: 2
+            skunk: 2.6
+            complexity: 2
+            isComplex: false
+          cognitive:
+            wcc: 83.3
+            crap: 2
+            skunk: 2.6
+            complexity: 2
+            isComplex: false
+          coverage: 83.3
+      - name: "command_test(228, 239)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "description(47, 50)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "flag(94, 101)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          coverage: 100
+      - name: "flag_help_text(135, 202)"
+        metrics:
+          cyclomatic:
+            wcc: 76.3
+            crap: 16.6
+            skunk: 19.5
+            complexity: 14
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 22.3
+            skunk: 25.1
+            complexity: 18
+            isComplex: true
+          coverage: 76.3
+      - name: "help_text(206, 220)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 3
+            skunk: 3
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          coverage: 100
+      - name: "new(30, 35)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "run(124, 133)"
+        metrics:
+          cyclomatic:
+            wcc: 57.1
+            crap: 7
+            skunk: 8.6
+            complexity: 5
+            isComplex: true
+          cognitive:
+            wcc: 57.1
+            crap: 3.7
+            skunk: 5.1
+            complexity: 3
+            isComplex: true
+          coverage: 57.1
+      - name: "usage(62, 65)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+  - name: src/context.rs
+    metrics:
+      cyclomatic:
+        wcc: 78.3
+        crap: 9.5
+        skunk: 10.7
+        complexity: 9.5
+        isComplex: false
+      cognitive:
+        wcc: 60.4
+        crap: 7.5
+        skunk: 8.4
+        complexity: 7.5
+        isComplex: false
+      coverage: 92.5
+    functions:
+      - name: "bool_flag(84, 90)"
+        metrics:
+          cyclomatic:
+            wcc: 75
+            crap: 3.1
+            skunk: 4.3
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 75
+            crap: 1
+            skunk: 1.4
+            complexity: 1
+            isComplex: false
+          coverage: 75
+      - name: "context_test(180, 227)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "float_flag(150, 156)"
+        metrics:
+          cyclomatic:
+            wcc: 75
+            crap: 4.3
+            skunk: 5.7
+            complexity: 4
+            isComplex: false
+          cognitive:
+            wcc: 75
+            crap: 1
+            skunk: 1.4
+            complexity: 1
+            isComplex: false
+          coverage: 75
+      - name: "help(169, 171)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+      - name: "int_flag(128, 134)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          coverage: 100
+      - name: "new(18, 51)"
+        metrics:
+          cyclomatic:
+            wcc: 90.5
+            crap: 7
+            skunk: 8.1
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 0
+            crap: 18.3
+            skunk: 20.9
+            complexity: 18
+            isComplex: true
+          coverage: 90.5
+      - name: "result_flag_value(54, 67)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 7
+            skunk: 7
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 3
+            skunk: 3
+            complexity: 3
+            isComplex: false
+          coverage: 100
+      - name: "string_flag(106, 112)"
+        metrics:
+          cyclomatic:
+            wcc: 75
+            crap: 4.3
+            skunk: 5.7
+            complexity: 4
+            isComplex: false
+          cognitive:
+            wcc: 75
+            crap: 1
+            skunk: 1.4
+            complexity: 1
+            isComplex: false
+          coverage: 75
+  - name: src/error.rs
+    metrics:
+      cyclomatic:
+        wcc: 0
+        crap: 76.5
+        skunk: 23.1
+        complexity: 9
+        isComplex: true
+      cognitive:
+        wcc: 5.9
+        crap: 2.4
+        skunk: 3.1
+        complexity: 1.2
+        isComplex: true
+      coverage: 5.9
+    functions:
+      - name: "description(26, 34)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 42
+            skunk: 16
+            complexity: 6
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          coverage: 0
+      - name: "fmt(14, 22)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 42
+            skunk: 16
+            complexity: 6
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          coverage: 0
+  - name: src/flag.rs
+    metrics:
+      cyclomatic:
+        wcc: 69.5
+        crap: 7.8
+        skunk: 8.9
+        complexity: 7.8
+        isComplex: false
+      cognitive:
+        wcc: 69.5
+        crap: 4.3
+        skunk: 4.9
+        complexity: 4.3
+        isComplex: false
+      coverage: 91.6
+    functions:
+      - name: "<anonymous>(117, 119)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 3
+            skunk: 3
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          coverage: 100
+      - name: "alias(105, 112)"
+        metrics:
+          cyclomatic:
+            wcc: 83.3
+            crap: 2
+            skunk: 2.6
+            complexity: 2
+            isComplex: false
+          cognitive:
+            wcc: 83.3
+            crap: 2
+            skunk: 2.6
+            complexity: 2
+            isComplex: false
+          coverage: 83.3
+      - name: "bool_flag_test(196, 209)"
+        metrics:
+          cyclomatic:
+            wcc: 90.9
+            crap: 3
+            skunk: 3.5
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 90.9
+            crap: 1
+            skunk: 1.2
+            complexity: 1
+            isComplex: false
+          coverage: 90.9
+      - name: "construct_fail_1(179, 181)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "construct_fail_2(185, 187)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "construct_fail_3(191, 193)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "description(86, 89)"
+        metrics:
+          cyclomatic:
+            wcc: 0
+            crap: 2
+            skunk: 2.7
+            complexity: 1
+            isComplex: true
+          cognitive:
+            wcc: 0
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: true
+          coverage: 0
+      - name: "float_flag_test(246, 260)"
+        metrics:
+          cyclomatic:
+            wcc: 91.7
+            crap: 3
+            skunk: 3.4
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 91.7
+            crap: 1
+            skunk: 1.1
+            complexity: 1
+            isComplex: false
+          coverage: 91.7
+      - name: "int_flag_test(229, 243)"
+        metrics:
+          cyclomatic:
+            wcc: 91.7
+            crap: 3
+            skunk: 3.4
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 91.7
+            crap: 1
+            skunk: 1.1
+            complexity: 1
+            isComplex: false
+          coverage: 91.7
+      - name: "new(47, 74)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 4
+            skunk: 4
+            complexity: 4
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 3
+            skunk: 3
+            complexity: 3
+            isComplex: false
+          coverage: 100
+      - name: "opiton_index(155, 175)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+      - name: "option_index(115, 122)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 7
+            skunk: 7
+            complexity: 7
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 2
+            skunk: 2
+            complexity: 2
+            isComplex: false
+          coverage: 100
+      - name: "string_flag_test(212, 226)"
+        metrics:
+          cyclomatic:
+            wcc: 91.7
+            crap: 3
+            skunk: 3.4
+            complexity: 3
+            isComplex: false
+          cognitive:
+            wcc: 91.7
+            crap: 1
+            skunk: 1.1
+            complexity: 1
+            isComplex: false
+          coverage: 91.7
+      - name: "value(125, 147)"
+        metrics:
+          cyclomatic:
+            wcc: 73.3
+            crap: 19.3
+            skunk: 21.7
+            complexity: 15
+            isComplex: true
+          cognitive:
+            wcc: 73.3
+            crap: 16.2
+            skunk: 18.8
+            complexity: 13
+            isComplex: true
+          coverage: 73.3
+  - name: src/help.rs
+    metrics:
+      cyclomatic:
+        wcc: 100
+        crap: 1.5
+        skunk: 1.5
+        complexity: 1.5
+        isComplex: false
+      cognitive:
+        wcc: 100
+        crap: 0
+        skunk: 0
+        complexity: 0
+        isComplex: false
+      coverage: 100
+    functions:
+      - name: "help(4, 6)"
+        metrics:
+          cyclomatic:
+            wcc: 100
+            crap: 1
+            skunk: 1
+            complexity: 1
+            isComplex: false
+          cognitive:
+            wcc: 100
+            crap: 0
+            skunk: 0
+            complexity: 0
+            isComplex: false
+          coverage: 100
+  - name: src/lib.rs
+    metrics:
+      cyclomatic:
+        wcc: 100
+        crap: 1
+        skunk: 1
+        complexity: 1
+        isComplex: false
+      cognitive:
+        wcc: 100
+        crap: 0
+        skunk: 0
+        complexity: 0
+        isComplex: false
+      coverage: 100
+project:
+  total:
+    cyclomatic:
+      wcc: 64.8
+      crap: 9.4
+      skunk: 11.8
+      complexity: ~
+    cognitive:
+      wcc: 56
+      crap: 6.6
+      skunk: 8.5
+      complexity: ~
+    coverage: 77.2
+  min:
+    cyclomatic:
+      wcc: 0
+      crap: 1
+      skunk: 1
+      complexity: ~
+    cognitive:
+      wcc: 0
+      crap: 0
+      skunk: 0
+      complexity: ~
+    coverage: 0
+  max:
+    cyclomatic:
+      wcc: 100
+      crap: 76.5
+      skunk: 23.1
+      complexity: ~
+    cognitive:
+      wcc: 100
+      crap: 9.8
+      skunk: 11.2
+      complexity: ~
+    coverage: 100
+  average:
+    cyclomatic:
+      wcc: 54.8
+      crap: 20.7
+      skunk: 10.4
+      complexity: ~
+    cognitive:
+      wcc: 49.9
+      crap: 4.8
+      skunk: 5.2
+      complexity: ~
+    coverage: 62.4
+ignored_files:
+  - src/action.rs
