@@ -58,16 +58,16 @@
               <div class="cell has-text-right has-text-weight-medium">{{ thresholds.wcc }}&percnt;</div>
               <div class="cell has-text-grey ir-row-start-3">CRAP</div>
               <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.crap_cyclomatic }}
+              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.crapCyclomatic }}
               </div>
               <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                thresholds.crap_cognitive }}</div>
+                thresholds.crapCognitive }}</div>
               <div class="cell has-text-grey ir-row-start-4">Skunk</div>
               <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.skunk_cyclomatic }}
+              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.skunkCyclomatic }}
               </div>
               <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                thresholds.skunk_cognitive }}</div>
+                thresholds.skunkCognitive }}</div>
             </div>
           </div>
 
@@ -133,19 +133,19 @@
           <div class="level is-mobile mb-2">
             <p class="level-left has-text-grey">CRAP</p>
             <p
-              class="cyclomatic level-right has-text-weight-medium {% if file.metrics.cyclomatic.crap > thresholds.crap_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+              class="cyclomatic level-right has-text-weight-medium {% if file.metrics.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
               {{ file.metrics.cyclomatic.crap }}</p>
             <p
-              class="cognitive is-hidden level-right has-text-weight-medium {% if file.metrics.cognitive.crap > thresholds.crap_cognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+              class="cognitive is-hidden level-right has-text-weight-medium {% if file.metrics.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
               {{ file.metrics.cognitive.crap }}</p>
           </div>
           <div class="level is-mobile mb-2">
             <p class="level-left has-text-grey">Skunk</p>
             <p
-              class="cyclomatic level-right has-text-weight-medium {% if file.metrics.cyclomatic.skunk > thresholds.skunk_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+              class="cyclomatic level-right has-text-weight-medium {% if file.metrics.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
               {{ file.metrics.cyclomatic.skunk }}</p>
             <p
-              class="cognitive is-hidden level-right has-text-weight-medium {% if file.metrics.cognitive.skunk > thresholds.skunk_cognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+              class="cognitive is-hidden level-right has-text-weight-medium {% if file.metrics.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
               {{ file.metrics.cognitive.skunk }}</p>
           </div>
         </div>
@@ -236,11 +236,11 @@
                 {{ function.metrics.cyclomatic.wcc }}%
               </td>
               <td
-                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cyclomatic.crap > thresholds.crap_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
                 {{ function.metrics.cyclomatic.crap }}
               </td>
               <td
-                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cyclomatic.skunk > thresholds.skunk_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
                 {{ function.metrics.cyclomatic.skunk }}
               </td>
             </tr>
@@ -287,11 +287,11 @@
                 {{ function.metrics.cognitive.wcc }}%
               </td>
               <td
-                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cognitive.crap > thresholds.crap_cognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
                 {{ function.metrics.cognitive.crap }}
               </td>
               <td
-                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cognitive.skunk > thresholds.skunk_cognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                class="has-text-weight-medium has-text-centered is-vcentered {% if function.metrics.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
                 {{ function.metrics.cognitive.skunk }}
               </td>
             </tr>

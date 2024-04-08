@@ -47,11 +47,11 @@
     {{ file[1].metrics.cyclomatic.wcc }}%
   </td>
   <td
-    class="{% if file[1].metrics.cyclomatic.crap > thresholds.crap_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    class="{% if file[1].metrics.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cyclomatic.crap }}
   </td>
   <td
-    class="{% if file[1].metrics.cyclomatic.skunk > thresholds.skunk_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    class="{% if file[1].metrics.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cyclomatic.skunk }}
   </td>
 </tr>
@@ -103,11 +103,11 @@
     {{ file[1].metrics.cognitive.wcc }}%
   </td>
   <td
-    class="{% if file[1].metrics.cognitive.crap > thresholds.crap_cognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    class="{% if file[1].metrics.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cognitive.crap }}
   </td>
   <td
-    class="{% if file[1].metrics.cognitive.skunk > thresholds.skunk_cognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    class="{% if file[1].metrics.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cognitive.skunk }}
   </td>
 </tr>
