@@ -1,0 +1,114 @@
+{% extends "base.html" %} {% block files_rows %}
+<tr class="cyclomatic {% if file[1].metrics.cyclomatic.is_complex %}complex{% else %}not-complex{% endif %}">
+  <td class="is-vcentered no-wrap">
+    <span class="icon">
+      <i class="far fa-file"></i>
+    </span>
+    {% if file[0] == none %}
+    <span>{{ file[1].name }}</span>
+    {% else %}
+    <a href="{{ file[0] }}">{{ file[1].name }}</span>
+      {% endif %}
+  </td>
+  <td class="has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cyclomatic.complexity }}
+  </td>
+  <td class="has-text-centered is-vcentered is-hidden-touch">
+    <div class="progress-wrapper">
+      <progress
+        class="progress is-medium mb-0 {% if file[1].metrics.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file[1].metrics.coverage }}" max="100">
+        {{ file[1].metrics.coverage }}%
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file[1].metrics.coverage }}%
+      </p>
+    </div>
+  </td>
+  <td
+    class="has-text-weight-medium has-text-centered is-hidden-desktop is-vcentered {% if file[1].metrics.coverage < 60 %}has-text-danger{% else %}has-text-success{% endif %}">
+    {{ file[1].metrics.coverage }}%
+  </td>
+
+  <td class="has-text-centered is-vcentered is-hidden-touch">
+    <div class="progress-wrapper">
+      <progress
+        class="progress is-medium mb-0 {% if file[1].metrics.cyclomatic.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file[1].metrics.cyclomatic.wcc }}" max="100">
+        {{ file[1].metrics.cyclomatic.wcc }}%
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file[1].metrics.cyclomatic.wcc }}%
+      </p>
+    </div>
+  </td>
+  <td
+    class="has-text-weight-medium has-text-centered is-hidden-desktop is-vcentered {% if file[1].metrics.cyclomatic.wcc < thresholds.wcc %}has-text-danger{% else %}has-text-success{% endif %}">
+    {{ file[1].metrics.cyclomatic.wcc }}%
+  </td>
+  <td
+    class="{% if file[1].metrics.cyclomatic.crap > thresholds.crap_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cyclomatic.crap }}
+  </td>
+  <td
+    class="{% if file[1].metrics.cyclomatic.skunk > thresholds.skunk_cyclomatic %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cyclomatic.skunk }}
+  </td>
+</tr>
+<tr class="cognitive is-hidden {% if file[1].metrics.cognitive.is_complex %}complex{% else %}not-complex{% endif %}">
+  <td class="is-vcentered no-wrap">
+    <span class="icon">
+      <i class="far fa-file"></i>
+    </span>
+    {% if file[0] == none %}
+    <span>{{ file[1].name }}</span>
+    {% else %}
+    <a href="{{ file[0] }}">{{ file[1].name }}</span>
+      {% endif %}
+  </td>
+  <td class="has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cognitive.complexity }}
+  </td>
+  <td class="has-text-centered is-vcentered is-hidden-touch">
+    <div class="progress-wrapper">
+      <progress
+        class="progress is-medium mb-0 {% if file[1].metrics.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file[1].metrics.coverage }}" max="100">
+        {{ file[1].metrics.coverage }}%
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file[1].metrics.coverage }}%
+      </p>
+    </div>
+  </td>
+  <td
+    class="has-text-weight-medium has-text-centered is-hidden-desktop is-vcentered {% if file[1].metrics.coverage < 60 %}has-text-danger{% else %}has-text-success{% endif %}">
+    {{ file[1].metrics.coverage }}%
+  </td>
+
+  <td class="has-text-centered is-vcentered is-hidden-touch">
+    <div class="progress-wrapper">
+      <progress
+        class="progress is-medium mb-0 {% if file[1].metrics.cognitive.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+        value="{{ file[1].metrics.cognitive.wcc }}" max="100">
+        {{ file[1].metrics.cognitive.wcc }}%
+      </progress>
+      <p class="progress-value has-text-grey-dark">
+        {{ file[1].metrics.cognitive.wcc }}%
+      </p>
+    </div>
+  </td>
+  <td
+    class="has-text-weight-medium has-text-centered is-hidden-desktop is-vcentered {% if file[1].metrics.cognitive.wcc < thresholds.wcc %}has-text-danger{% else %}has-text-success{% endif %}">
+    {{ file[1].metrics.cognitive.wcc }}%
+  </td>
+  <td
+    class="{% if file[1].metrics.cognitive.crap > thresholds.crap_cognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cognitive.crap }}
+  </td>
+  <td
+    class="{% if file[1].metrics.cognitive.skunk > thresholds.skunk_cognitive %}has-text-danger{% else %}has-text-success{% endif %} has-text-weight-medium has-text-centered is-vcentered">
+    {{ file[1].metrics.cognitive.skunk }}
+  </td>
+</tr>
+{% endblock %}

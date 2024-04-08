@@ -1,0 +1,75 @@
+html {
+  background-color: #efefef;
+}
+
+.card {
+  height: 100%;
+}
+
+.progress-wrapper {
+  position: relative;
+}
+
+.progress-value {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: calc(1rem / 1.5);
+  line-height: 1rem;
+  font-weight: bold;
+}
+
+.progress.is-medium + .progress-value {
+  font-size: calc(1.25rem / 1.5);
+  line-height: 1.25rem;
+}
+
+.complex td {
+  position: relative;
+}
+
+.complex td:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 4px;
+  background-color: #f8446c;
+}
+
+.not-complex td {
+  position: relative;
+}
+
+.not-complex td:first-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 4px;
+  background-color: #50c48c;
+}
+
+.card-row {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.no-wrap {
+  white-space: nowrap;
+}
+
+.grid-gap {
+  --bulma-grid-gap: 0.5rem;
+}
+
+td {
+  width: calc(1 / 6 * 100%);
+}
+
+.pointer {
+  cursor: pointer;
+}
