@@ -23,20 +23,25 @@
 
   <div class="columns is-variable is-2 m-1 is-multiline">
     <!-- Analysis parameters -->
-    <div class="column">
+    <div class="column is-full-mobile">
       <div class="card">
         <div class="card-content">
-          <p class="title is-5">Analysis parameterers</p>
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block no-wrap">Analysis parameters</h5>
+            <span class="icon is-clickable analysis-parameters-details">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
           <div class="level is-mobile mb-2">
             <p class="level-left has-text-grey no-wrap">File</p>
             <p class="level-right has-text-weight-medium">{{ file.name }}</p>
           </div>
           <div class="level is-mobile mb-2">
-            <p id="mode" class="level-left has-text-grey no-wrap pointer">Mode</p>
+            <p class="level-left has-text-grey no-wrap">Mode</p>
             <p class="level-right has-text-weight-medium">Functions</p>
           </div>
           <div class="level is-mobile">
-            <p id="complexity-type" class="level-left has-text-grey no-wrap pointer">Complexity</p>
+            <p class="level-left has-text-grey no-wrap">Complexity</p>
             <p class="cyclomatic level-right has-text-weight-medium">Cyclomatic</p>
             <p class="cognitive is-hidden level-right has-text-weight-medium">Cognitive</p>
           </div>
@@ -44,43 +49,58 @@
       </div>
     </div>
     <!-- Thresholds -->
-    <div class="column">
+    <div class="column is-full-mobile">
       <div class="card">
         <div class="card-content">
-          <p id="thresholds" class="title is-5 no-wrap is-inline-block pointer">Thresholds</p>
-          <div class="fixed-grid has-3-cols">
-            <div class="grid grid-gap">
-              <div class="cell has-text-grey">Coverage</div>
-              <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&ge;</div>
-              <div class="cell has-text-right has-text-weight-medium">60.0&percnt;</div>
-              <div class="cell has-text-grey ir-row-start-2">Wcc</div>
-              <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&ge;</div>
-              <div class="cell has-text-right has-text-weight-medium">{{ thresholds.wcc }}&percnt;</div>
-              <div class="cell has-text-grey ir-row-start-3">CRAP</div>
-              <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.crapCyclomatic }}
-              </div>
-              <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                thresholds.crapCognitive }}</div>
-              <div class="cell has-text-grey ir-row-start-4">Skunk</div>
-              <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-              <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.skunkCyclomatic }}
-              </div>
-              <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                thresholds.skunkCognitive }}</div>
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block">Thresholds</h5>
+            <span class="icon is-clickable thresholds">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
+          <div class="columns is-mobile">
+            <div class="column">
+              <p class="has-text-grey mb-2">Coverage</p>
+              <p class="has-text-grey mb-2">Wcc</p>
+              <p class="has-text-grey mb-2">Crap</p>
+              <p class="has-text-grey">Skunk</p>
+            </div>
+            <div class="column is-narrow">
+              <p class="has-text-weight-medium mb-2">&ge;</p>
+              <p class="has-text-weight-medium mb-2">&ge;</p>
+              <p class="has-text-weight-medium mb-2">&le;</p>
+              <p class="has-text-weight-medium">&le;</p>
+            </div>
+            <div class="column is-narrow has-text-right has-text-weight-medium pr-0">
+              <p class="mb-2">60.0</p>
+              <p class="mb-2">{{ thresholds.wcc }}</p>
+              <p class="cyclomatic mb-2">{{ thresholds.crapCyclomatic }}</p>
+              <p class="cognitive is-hidden mb-2">{{ thresholds.crapCognitive }}</p>
+              <p class="cyclomatic mb-2">{{ thresholds.skunkCyclomatic }}</p>
+              <p class="cognitive is-hidden mb-2">{{ thresholds.skunkCognitive }}</p>
+            </div>
+            <div class="column is-narrow pl-1 has-text-weight-medium">
+              <p class="mb-2">&percnt;</p>
+              <p class="mb-2">&percnt;</p>
+              <p class="mb-2"></p>
+              <p class="mb-2"></p>
             </div>
           </div>
-
         </div>
       </div>
     </div>
     <!-- File -->
-    <div class="column">
+    <div class="column is-full is-one-quarter-widescreen">
       <div class="card">
         <div class="card-content">
-          <p class="title is-5">File</p>
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block">File</h5>
+            <span class="icon is-clickable file-metrics">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
           <div class="level is-mobile mb-4">
-            <p id="file-complexity" class="level-left has-text-grey pointer">Complexity</p>
+            <p class="level-left has-text-grey">Complexity</p>
             <p class="cyclomatic level-right has-text-weight-medium">{{ file.metrics.cyclomatic.complexity }}</p>
             <p class="cognitive is-hidden level-right has-text-weight-medium">{{ file.metrics.cognitive.complexity }}
             </p>
@@ -152,10 +172,15 @@
       </div>
     </div>
     <!-- Functions chart -->
-    <div class="column is-full is-one-third-widescreen">
+    <div class="column is-full is-one-quarter-widescreen">
       <div class="card">
         <div class="card-content">
-          <p class="title is-5">Functions</p>
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block">Functions</h5>
+            <span class="icon is-clickable functions">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
           <div class="is-flex is-align-items-center is-justify-content-center" style="height: 160px">
             <canvas id="chart"></canvas>
           </div>
@@ -172,22 +197,58 @@
           <thead>
             <tr>
               <th>
-                <h6 id="function" class="title is-6 no-wrap is-inline-block pointer">Function</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Function</span>
+                  <span class="icon is-clickable function-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
               <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap">Complexity</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Complexity</span>
+                  <span class="icon is-clickable complexity-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
               <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap">Coverage</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Coverage</span>
+                  <span class="icon is-clickable coverage-table">
+                    <i class="fas fa-info-circle coverage"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Wcc</span>
+                  <span class="icon is-clickable wcc-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>CRAP</span>
+                  <span class="icon is-clickable crap-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
               <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap wcc is-inline-block pointer">Wcc</h6>
-              </th>
-              <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap crap is-inline-block pointer">CRAP</h6>
-              </th>
-              <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap skunk is-inline-block pointer">Skunk</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Skunk</span>
+                  <span class="icon is-clickable skunk-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
             </tr>
           </thead>
@@ -196,9 +257,9 @@
             <tr
               class="cyclomatic {% if function.metrics.cyclomatic.is_complex %}complex{% else %}not-complex{% endif %}">
               <td class="is-vcentered">
-                <span>{{ function.name }}</span>
+                <span class="no-wrap">{{ function.name }}</span>
               </td>
-              <td class="has-text-centered is-vcentered">
+              <td class="has-text-weight-medium has-text-centered is-vcentered">
                 {{ function.metrics.cyclomatic.complexity }}
               </td>
 
@@ -247,9 +308,9 @@
             <tr
               class="cognitive is-hidden {% if function.metrics.cognitive.is_complex %}complex{% else %}not-complex{% endif %}">
               <td class="is-vcentered">
-                <span>{{ function.name }}</span>
+                <span class="no-wrap">{{ function.name }}</span>
               </td>
-              <td class="has-text-centered is-vcentered">
+              <td class="has-text-weight-medium has-text-centered is-vcentered">
                 {{ function.metrics.cognitive.complexity }}
               </td>
 
@@ -307,12 +368,8 @@
 
 <script>
   // Tooltips
-  {% include 'tooltips.js' %}
-
-  tippy('#function', {
-    content: 'A <b>function</b> is considered complex if at least one of the following apply: <b>Wcc</b> below threshold, <b>CRAP</b> or <b>Skunk</b> above threshold. The numbers in brackets are function start and end line.',
-    allowHTML: true
-  });
+  {% include 'common_tooltips.js' %}
+  {% include 'file_details_tooltips.js' %}
 
   // Chart data passed with minijinja.
   const chartData = document.getElementById("chartData");

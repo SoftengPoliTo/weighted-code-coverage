@@ -25,59 +25,80 @@
   {% if files|length != 0 %}
   <div class="columns is-variable m-1 is-1 is-multiline">
     <div class="column is-full-touch">
-      <div class="columns">
+      <div class="columns is-multiline">
         <!-- Analysis parameters -->
-        <div class="column">
+        <div class="column is-full-mobile">
           <div class="card">
             <div class="card-content">
-              <h5 class="title is-5">Analysis parameters</h5>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">Analysis parameters</h5>
+                <span class="icon is-clickable analysis-parameters-files">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
               <div class="level is-mobile mb-2">
-                <p id="mode" class="level-left has-text-grey pointer" style="cursor: pointer;">Mode</p>
+                <p class="level-left has-text-grey">Mode</p>
                 <p class="level-right has-text-weight-medium">{{ mode }}</p>
               </div>
               <div class="level is-mobile">
-                <p id="complexity-type" class="level-left has-text-grey pointer">Complexity</p>
+                <p class="level-left has-text-grey">Complexity</p>
                 <p class="cyclomatic level-right has-text-weight-medium">Cyclomatic</p>
                 <p class="cognitive is-hidden level-right has-text-weight-medium">Cognitive</p>
               </div>
             </div>
           </div>
         </div>
-        <!-- Analysis parameters -->
-        <div class="column">
+        <!-- Thresholds -->
+        <div class="column is-full-mobile">
           <div class="card">
             <div class="card-content">
-              <h5 id="thresholds" class="title is-5 is-inline-block pointer">Thresholds</h5>
-              <div class="fixed-grid has-3-cols">
-                <div class="grid grid-gap">
-                  <div class="cell has-text-grey">Coverage</div>
-                  <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&ge;</div>
-                  <div class="cell has-text-right has-text-weight-medium">60.0&percnt;</div>
-                  <div class="cell has-text-grey ir-row-start-2">Wcc</div>
-                  <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&ge;</div>
-                  <div class="cell has-text-right has-text-weight-medium">{{ thresholds.wcc }}&percnt;</div>
-                  <div class="cell has-text-grey ir-row-start-3">CRAP</div>
-                  <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-                  <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.crapCyclomatic }}
-                  </div>
-                  <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                    thresholds.crapCognitive }}</div>
-                  <div class="cell has-text-grey ir-row-start-4">Skunk</div>
-                  <div class="cell is-col-start-2 has-text-right has-text-weight-medium">&le;</div>
-                  <div class="cyclomatic cell has-text-right has-text-weight-medium">{{ thresholds.skunkCyclomatic }}
-                  </div>
-                  <div class="cognitive is-hidden cell has-text-right has-text-weight-medium">{{
-                    thresholds.skunkCognitive }}</div>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">Thresholds</h5>
+                <span class="icon is-clickable thresholds">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="columns is-mobile">
+                <div class="column">
+                  <p class="has-text-grey mb-2">Coverage</p>
+                  <p class="has-text-grey mb-2">Wcc</p>
+                  <p class="has-text-grey mb-2">Crap</p>
+                  <p class="has-text-grey">Skunk</p>
+                </div>
+                <div class="column is-narrow">
+                  <p class="has-text-weight-medium mb-2">&ge;</p>
+                  <p class="has-text-weight-medium mb-2">&ge;</p>
+                  <p class="has-text-weight-medium mb-2">&le;</p>
+                  <p class="has-text-weight-medium">&le;</p>
+                </div>
+                <div class="column is-narrow has-text-right has-text-weight-medium pr-0">
+                  <p class="mb-2">60.0</p>
+                  <p class="mb-2">{{ thresholds.wcc }}</p>
+                  <p class="cyclomatic mb-2">{{ thresholds.crapCyclomatic }}</p>
+                  <p class="cognitive is-hidden mb-2">{{ thresholds.crapCognitive }}</p>
+                  <p class="cyclomatic mb-2">{{ thresholds.skunkCyclomatic }}</p>
+                  <p class="cognitive is-hidden mb-2">{{ thresholds.skunkCognitive }}</p>
+                </div>
+                <div class="column is-narrow pl-1 has-text-weight-medium">
+                  <p class="mb-2">&percnt;</p>
+                  <p class="mb-2">&percnt;</p>
+                  <p class="mb-2"></p>
+                  <p class="mb-2"></p>
                 </div>
               </div>
             </div>
           </div>
         </div>
         <!-- Coverage -->
-        <div class="column">
+        <div class="column is-full-touch">
           <div class="card">
             <div class="card-content">
-              <h5 class="title is-5" style="margin-bottom: 32px;">Coverage</h5>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block pb-2">Coverage</h5>
+                <span class="icon is-clickable coverage-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
               <div class="columns is-vcentered is-flex-mobile">
                 <div class="column card-row">
                   <p class="has-text-grey has-text-left">Overall</p>
@@ -155,7 +176,12 @@
         <div class="column">
           <div class="card">
             <div class="card-content">
-              <h5 class="title is-5 wcc is-inline-block pointer" style="margin-bottom: 32px;">Wcc</h5>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block pb-2">Wcc</h5>
+                <span class="icon is-clickable wcc-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
               <div class="columns is-vcentered is-flex-mobile">
                 <div class="column card-row">
                   <p class="has-text-grey has-text-left">Overall</p>
@@ -271,7 +297,12 @@
         <div class="column">
           <div class="card">
             <div class="card-content">
-              <h5 class="title is-5 crap is-inline-block pointer">CRAP</h5>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">CRAP</h5>
+                <span class="icon is-clickable crap-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
               <div class="level is-mobile mb-2">
                 <p class="level-left has-text-grey">Overall</p>
                 <p
@@ -315,7 +346,12 @@
         <div class="column">
           <div class="card">
             <div class="card-content">
-              <h5 class="title is-5 skunk is-inline-block pointer">Skunk</h5>
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block ">Skunk</h5>
+                <span class="icon is-clickable skunk-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
               <div class="level is-mobile mb-2">
                 <p class="level-left has-text-grey">Overall</p>
                 <p
@@ -358,10 +394,15 @@
       </div>
     </div>
     <!-- Files chart -->
-    <div class="column is-full is-one-third-widescreen">
+    <div class="column is-full is-one-third-fullhd">
       <div class="card">
         <div class="card-content">
-          <h5 class="title is-5">Files</h5>
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block">Files</h5>
+            <span class="icon is-clickable files">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
           <div class="is-flex is-align-items-center is-justify-content-center" style="height: 366px">
             <canvas id="chart"></canvas>
           </div>
@@ -378,22 +419,58 @@
           <thead>
             <tr>
               <th>
-                <h6 id="file" class="title is-6 no-wrap is-inline-block pointer">File</h6>
-              </th>
-              <th class="has-text-centered no-wrap">
-                <h6 id="file-complexity" class="title is-6 no-wrap pointer">Complexity</h6>
-              </th>
-              <th class="has-text-centered no-wrap">
-                <h6 class="title is-6 no-wrap">Coverage</h6>
-              </th>
-              <th class="has-text-centered no-wrap">
-                <h6 class="title is-6 wcc pointer">Wcc</h6>
-              </th>
-              <th class="has-text-centered no-wrap">
-                <h6 class="title is-6 no-wrap crap pointer">CRAP</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>File</span>
+                  <span class="icon is-clickable file-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
               <th class="has-text-centered">
-                <h6 class="title is-6 no-wrap skunk pointer">Skunk</h6>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Complexity</span>
+                  <span class="icon is-clickable complexity-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Coverage</span>
+                  <span class="icon is-clickable coverage-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Wcc</span>
+                  <span class="icon is-clickable wcc-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>CRAP</span>
+                  <span class="icon is-clickable crap-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Skunk</span>
+                  <span class="icon is-clickable skunk-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
               </th>
             </tr>
           </thead>
@@ -405,6 +482,7 @@
       </div>
     </div>
   </div>
+
   {% else %}
   <!-- Failed analysis -->
   <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column m-3"
@@ -416,6 +494,7 @@
       with profiling.
     </h3>
   </div>
+
   {% endif %}
   <!-- Ignored files modal -->
   <div id="modal-js-example" class="modal">
@@ -431,7 +510,7 @@
             coverage information:</p>
           <ul>
             {% for file in ignored_files|sort %}
-            <li>{{ file }}</li>
+            <li class="has-text-weight-medium">{{ file }}</li>
             {% endfor %}
           </ul>
         </div>
@@ -449,11 +528,8 @@
 
 <script>
   // Tooltips.
-  {% include 'tooltips.js' %}
-  tippy('#file', {
-    content: 'A <b>file</b> is considered complex if at least one of the following apply: <b>Wcc</b> below threshold, <b>CRAP</b> or <b>Skunk</b> above threshold.',
-    allowHTML: true
-  });
+  {% include 'common_tooltips.js' %}
+  {% include 'base_tooltips.js' %}
 
   // Ignored files modal handler.
   document.addEventListener('DOMContentLoaded', () => {

@@ -1,15 +1,19 @@
 {% extends "base.html" %} {% block files_rows %}
 <tr class="cyclomatic {% if file[1].metrics.cyclomatic.is_complex %}complex{% else %}not-complex{% endif %}">
-  <td class="is-vcentered no-wrap">
-    <span class="icon">
-      <i class="far fa-file"></i>
-    </span>
-    {% if file[0] == none %}
-    <span>{{ file[1].name }}</span>
-    {% else %}
-    <a href="{{ file[0] }}">{{ file[1].name }}</span>
+  <td class="is-vcentered">
+    <span class="icon-text is-flex-wrap-nowrap">
+      <span class="icon">
+        <i class="fas fa-file"></i>
+      </span>
+      {% if file[0] == none %}
+      <span>{{ file[1].name }}</span>
+      {% else %}
+      <a href="{{ file[0] }}">{{ file[1].name }}</a>
       {% endif %}
+    </span>
+    </span>
   </td>
+
   <td class="has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cyclomatic.complexity }}
   </td>
@@ -56,15 +60,18 @@
   </td>
 </tr>
 <tr class="cognitive is-hidden {% if file[1].metrics.cognitive.is_complex %}complex{% else %}not-complex{% endif %}">
-  <td class="is-vcentered no-wrap">
-    <span class="icon">
-      <i class="far fa-file"></i>
-    </span>
-    {% if file[0] == none %}
-    <span>{{ file[1].name }}</span>
-    {% else %}
-    <a href="{{ file[0] }}">{{ file[1].name }}</span>
+  <td class="is-vcentered">
+    <span class="icon-text is-flex-wrap-nowrap">
+      <span class="icon">
+        <i class="fas fa-file"></i>
+      </span>
+      {% if file[0] == none %}
+      <span>{{ file[1].name }}</span>
+      {% else %}
+      <a href="{{ file[0] }}">{{ file[1].name }}</a>
       {% endif %}
+    </span>
+    </span>
   </td>
   <td class="has-text-weight-medium has-text-centered is-vcentered">
     {{ file[1].metrics.cognitive.complexity }}

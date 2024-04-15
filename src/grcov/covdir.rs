@@ -25,7 +25,7 @@ impl Covdir {
         let json = fs::read_to_string(json_path)?;
         let covdir_value: Value = serde_json::from_str(&json)?;
         let mut source_files = HashMap::new();
-        Self::get_source_files(&covdir_value, &mut source_files, project_path)?;
+        get_source_files(&covdir_value, &mut source_files, project_path);
         let total_coverage = get_total_coverage(&covdir_value)?;
 
         Ok(Covdir {
@@ -33,96 +33,80 @@ impl Covdir {
             total_coverage,
         })
     }
+}
 
-    // Finds all `CovdirSourceFile` and fills `source_files`
-    // using the path of the files as the key.
-    //
-    // This function does an in-depth search,
-    // exploring all directories and subdirectories.
-    fn get_source_files(
-        covdir_value: &Value,
-        source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
-        project_path: &Path,
-    ) -> Result<()> {
-        let mut stack = Vec::<(&Value, PathBuf)>::new();
-        stack.push((covdir_value, PathBuf::new()));
+// Finds all `CovdirSourceFile` and fills `source_files`
+// using the path of the files as the key.
+//
+// This function does an in-depth search,
+// exploring all directories and subdirectories.
+fn get_source_files(
+    covdir_value: &Value,
+    source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
+    project_path: &Path,
+) {
+    let mut stack = Vec::<(&Value, PathBuf)>::new();
+    stack.push((covdir_value, PathBuf::new()));
 
-        while let Some((current_value, current_path)) = stack.pop() {
-            if let Some(directory_value) = current_value.get("children") {
-                Self::handle_directory_value(
-                    directory_value,
-                    current_value,
-                    current_path,
-                    &mut stack,
-                )?;
-            } else {
-                Self::handle_file_value(current_value, current_path, project_path, source_files)?;
-            }
+    while let Some((current_value, current_path)) = stack.pop() {
+        if let Some(directory_value) = current_value.get("children") {
+            handle_directory_value(directory_value, current_value, current_path, &mut stack);
+        } else {
+            handle_file_value(current_value, current_path, project_path, source_files);
         }
-
-        Ok(())
     }
+}
 
-    // Handle the case where the json `&Value` popped from the stack is a directory.
-    fn handle_directory_value<'a>(
-        directory_value: &'a Value,
-        parent_directory: &Value,
-        mut current_path: PathBuf,
-        stack: &mut Vec<(&'a Value, PathBuf)>,
-    ) -> Result<()> {
-        if let Some(object) = directory_value.as_object() {
-            let current_directory = get_directory(parent_directory)?;
-            current_path.push(current_directory);
-            for (_, child_object) in object {
-                stack.push((child_object, current_path.clone()));
-            }
-        }
-
-        Ok(())
+// Handle the case where the json `&Value` popped from the stack is a directory.
+fn handle_directory_value<'a>(
+    directory_value: &'a Value,
+    parent_directory: &Value,
+    mut current_path: PathBuf,
+    stack: &mut Vec<(&'a Value, PathBuf)>,
+) {
+    if let (Some(object), Some(current_directory)) =
+        (directory_value.as_object(), get_directory(parent_directory))
+    {
+        current_path.push(current_directory);
+        object
+            .iter()
+            .for_each(|(_, child_object)| stack.push((child_object, current_path.clone())));
     }
+}
 
-    // Handle the case where the json `&Value` popped from the stack is a source file.
-    fn handle_file_value(
-        file_value: &Value,
-        mut current_path: PathBuf,
-        project_path: &Path,
-        source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
-    ) -> Result<()> {
-        if let Some(name) = file_value.get("name").and_then(|n| n.as_str()) {
-            if let (Some(lines_coverage), Some(coverage_percentage)) = (
-                file_value.get("coverage").and_then(|c| c.as_array()),
-                file_value.get("coveragePercent").and_then(|cp| cp.as_f64()),
-            ) {
-                current_path.push(name);
-                let file_path = get_file_path(project_path, &current_path);
-                let coverage = parse_coverage(lines_coverage);
-                let source_file = CovdirSourceFile {
-                    coverage,
-                    coverage_percent: coverage_percentage,
-                };
+// Handle the case where the json `&Value` popped from the stack is a source file.
+fn handle_file_value(
+    file_value: &Value,
+    mut current_path: PathBuf,
+    project_path: &Path,
+    source_files: &mut HashMap<PathBuf, CovdirSourceFile>,
+) {
+    if let Some(name) = file_value.get("name").and_then(|n| n.as_str()) {
+        if let (Some(lines_coverage), Some(coverage_percentage)) = (
+            file_value.get("coverage").and_then(|c| c.as_array()),
+            file_value.get("coveragePercent").and_then(|cp| cp.as_f64()),
+        ) {
+            current_path.push(name);
+            let file_path = get_file_path(project_path, &current_path);
+            let coverage = parse_coverage(lines_coverage);
+            let source_file = CovdirSourceFile {
+                coverage,
+                coverage_percent: coverage_percentage,
+            };
 
-                source_files.insert(file_path, source_file);
-            }
+            source_files.insert(file_path, source_file);
         }
-
-        Ok(())
     }
 }
 
 #[inline]
-fn get_directory(covdir_json: &Value) -> Result<PathBuf> {
-    Ok(PathBuf::from(
-        covdir_json
-            .get("name")
-            .ok_or(Error::Conversion)?
-            .as_str()
-            .ok_or(Error::Conversion)?,
-    ))
+fn get_directory(covdir_json: &Value) -> Option<PathBuf> {
+    covdir_json.get("name")?.as_str().map(PathBuf::from)
 }
 
 #[inline]
 fn get_file_path(project_path: &Path, file_relative_path: &Path) -> PathBuf {
-    let file_path = project_path.to_path_buf().join(file_relative_path);
+    let file_path = project_path.join(file_relative_path);
 
     PathBuf::from(file_path.to_string_lossy().replace('\\', "/"))
 }

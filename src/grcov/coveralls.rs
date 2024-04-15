@@ -28,9 +28,7 @@ impl Coveralls {
         let mut coveralls = Coveralls(HashMap::new());
 
         coveralls_json.source_files.into_iter().for_each(|file| {
-            coveralls
-                .0
-                .insert(project_path.to_path_buf().join(&file.name), file);
+            coveralls.0.insert(project_path.join(&file.name), file);
         });
 
         Ok(coveralls)

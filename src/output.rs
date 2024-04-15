@@ -24,12 +24,27 @@ static NAVBAR: (&str, &str) = (
 
 static STYLE: (&str, &str) = ("style.css", include_str!("../templates/css/style.css"));
 
-static TOOLTIPS: (&str, &str) = ("tooltips.js", include_str!("../templates/js/tooltips.js"));
+static COMMON_TOOLTIPS: (&str, &str) = (
+    "common_tooltips.js",
+    include_str!("../templates/js/common_tooltips.js"),
+);
+
+static BASE_TOOLTIPS: (&str, &str) = (
+    "base_tooltips.js",
+    include_str!("../templates/js/base_tooltips.js"),
+);
+
+static FILE_DETAILS_TOOLTIPS: (&str, &str) = (
+    "file_details_tooltips.js",
+    include_str!("../templates/js/file_details_tooltips.js"),
+);
 
 static COMPLEXITY: (&str, &str) = (
     "complexity.js",
     include_str!("../templates/js/complexity.js"),
 );
+
+const OUTPUT_HTML_INDEX: &str = "index.html";
 
 pub(crate) trait WccPrinter {
     type Output;
@@ -63,8 +78,8 @@ impl JsonPrinter<'_> {
             .files
             .iter()
             .filter(|f| match complexity {
-                Complexity::Cyclomatic => f.metrics.cyclomatic.is_complex.unwrap_or(true),
-                Complexity::Cognitive => f.metrics.cyclomatic.is_complex.unwrap_or(true),
+                Complexity::Cyclomatic => f.metrics.cyclomatic.is_complex,
+                Complexity::Cognitive => f.metrics.cyclomatic.is_complex,
             })
             .map(|f| f.name.as_str())
             .collect()
@@ -121,11 +136,10 @@ impl HtmlPrinter<'_> {
             .iter()
             .enumerate()
             .map(|(file_number, file)| {
-                if file.functions.is_some() {
-                    (Some(format!("file_{}.html", file_number + 1)), file)
-                } else {
-                    (None, file)
-                }
+                file.functions
+                    .as_ref()
+                    .map(|_| (Some(format!("file_{}.html", file_number + 1)), file))
+                    .unwrap_or((None, file))
             })
             .collect()
     }
@@ -133,10 +147,10 @@ impl HtmlPrinter<'_> {
     fn get_complex_files(&self) -> ComplexSpaces {
         let mut complex_spaces = ComplexSpaces::default();
         self.wcc_output.files.iter().for_each(|f| {
-            if let Some(true) = f.metrics.cyclomatic.is_complex {
+            if f.metrics.cyclomatic.is_complex {
                 complex_spaces.complex_cyclomatic += 1;
             };
-            if let Some(true) = f.metrics.cognitive.is_complex {
+            if f.metrics.cognitive.is_complex {
                 complex_spaces.complex_cognitive += 1;
             };
         });
@@ -152,10 +166,10 @@ impl HtmlPrinter<'_> {
         let mut complex_spaces = ComplexSpaces::default();
         if let Some(functions) = &file.functions {
             functions.iter().for_each(|f| {
-                if let Some(true) = f.metrics.cyclomatic.is_complex {
+                if f.metrics.cyclomatic.is_complex {
                     complex_spaces.complex_cyclomatic += 1;
                 };
-                if let Some(true) = f.metrics.cognitive.is_complex {
+                if f.metrics.cognitive.is_complex {
                     complex_spaces.complex_cognitive += 1;
                 };
             });
@@ -204,7 +218,9 @@ impl WccPrinter for HtmlPrinter<'_> {
         env.add_template(BASE.0, BASE.1)?;
         env.add_template(NAVBAR.0, NAVBAR.1)?;
         env.add_template(STYLE.0, STYLE.1)?;
-        env.add_template(TOOLTIPS.0, TOOLTIPS.1)?;
+        env.add_template(COMMON_TOOLTIPS.0, COMMON_TOOLTIPS.1)?;
+        env.add_template(BASE_TOOLTIPS.0, BASE_TOOLTIPS.1)?;
+        env.add_template(FILE_DETAILS_TOOLTIPS.0, FILE_DETAILS_TOOLTIPS.1)?;
         env.add_template(COMPLEXITY.0, COMPLEXITY.1)?;
         let files = self.format_files();
         if let Mode::Functions = self.mode {
@@ -227,7 +243,7 @@ impl WccPrinter for HtmlPrinter<'_> {
             thresholds => self.thresholds,
         })?;
 
-        std::fs::write(self.output_path.join("index.html"), output)?;
+        std::fs::write(self.output_path.join(OUTPUT_HTML_INDEX), output)?;
 
         Ok(())
     }

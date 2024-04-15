@@ -36,28 +36,22 @@ use metrics::MetricsThresholds;
 use output::{HtmlPrinter, JsonPrinter, WccPrinter};
 use serde::Serialize;
 
-const JSON_OUTPUT_PATH: &str = "wcc.json";
-
 #[derive(Debug)]
-struct Parameters<P: AsRef<Path>> {
+struct Parameters<'a> {
     n_threads: usize,
-    grcov_format: GrcovFormat<PathBuf>,
     mode: Mode,
     thresholds: MetricsThresholds,
     sort_by: Sort,
-    json_path: PathBuf,
-    html_path: Option<P>,
+    html_path: Option<&'a Path>,
 }
 
-impl<P: AsRef<Path>> Default for Parameters<P> {
+impl Default for Parameters<'_> {
     fn default() -> Self {
         Self {
             thresholds: MetricsThresholds::default(),
             n_threads: (rayon::current_num_threads() - 1).max(1),
-            grcov_format: GrcovFormat::default(),
             mode: Mode::default(),
             sort_by: Sort::default(),
-            json_path: PathBuf::from(JSON_OUTPUT_PATH),
             html_path: Option::default(),
         }
     }
@@ -72,9 +66,9 @@ impl<P: AsRef<Path>> Default for Parameters<P> {
 /// * *files* as default analysis mode.
 /// * *wcc plain* as default metric that will be used to sort the output.
 #[derive(Debug)]
-pub struct WccRunner<P: AsRef<Path>>(Parameters<P>);
+pub struct WccRunner<'a>(Parameters<'a>);
 
-impl<P: AsRef<Path>> WccRunner<P> {
+impl<'a> WccRunner<'a> {
     /// Creates a new `WccRunner` instance.
     pub fn new() -> Self {
         Self(Parameters::default())
@@ -92,12 +86,6 @@ impl<P: AsRef<Path>> WccRunner<P> {
         self
     }
 
-    /// Sets format of the input grcov json file and its path.
-    pub fn grcov_format<T: Into<PathBuf>>(mut self, grcov_format: GrcovFormat<T>) -> Self {
-        self.0.grcov_format = grcov_format.into();
-        self
-    }
-
     /// Sets mode that will be used for the analysis.
     pub fn mode(mut self, mode: Mode) -> Self {
         self.0.mode = mode;
@@ -110,58 +98,68 @@ impl<P: AsRef<Path>> WccRunner<P> {
         self
     }
 
-    /// Sets the path of the json output.
-    pub fn json_path<T: Into<PathBuf>>(mut self, json_path: T) -> Self {
-        self.0.json_path = json_path.into();
-        self
-    }
-
     /// Sets the path of the html output.
-    pub fn html_path(mut self, html_path: Option<P>) -> Self {
-        self.0.html_path = html_path;
+    pub fn html_path(mut self, html_path: &'a Path) -> Self {
+        self.0.html_path = Some(html_path);
         self
     }
 
     /// Runs the weighted code coverage runner.
-    pub fn run<'a, T: AsRef<Path> + Sync + 'a>(self, project_path: T) -> Result<WccOutput> {
-        if let Some(extension) = self.0.json_path.extension() {
-            if extension.to_ascii_lowercase() != "json" {
-                return Err(Error::OutputPath("Json output path must be a json file"));
-            }
+    pub fn run<P: AsRef<Path>>(
+        self,
+        project_path: &Path,
+        grcov_file: GrcovFile<P>,
+        json_path: &Path,
+    ) -> Result<WccOutput> {
+        // Check if json_path is a json file.
+        if json_path
+            .extension()
+            .map(|ext| ext.to_ascii_lowercase())
+            .map_or(true, |ext| ext != "json")
+        {
+            return Err(Error::OutputPath("Json output path must be a json file"));
         }
 
-        if let Some(path) = &self.0.html_path {
-            if !path.as_ref().is_dir() {
-                return Err(Error::OutputPath("Html output path must be a directory"));
-            }
+        // Check if html_path is a directory.
+        if self.0.html_path.map_or(false, |path| !path.is_dir()) {
+            return Err(Error::OutputPath("Html output path must be a directory"));
         }
 
-        let files = read_files(project_path.as_ref())?;
-        let grcov = self.get_grcov(project_path.as_ref())?;
+        // Retrieve project files.
+        let files = read_files(project_path)?;
 
+        // Parse grcov file.
+        let grcov = self.get_grcov(project_path, grcov_file)?;
+
+        // Retrieve project metrics concurrently.
         let wcc_output = Wcc {
-            project_path: project_path.as_ref(),
+            project_path,
             files: &files,
             mode: self.0.mode,
             grcov,
-            thresholds: self.0.thresholds,
+            metrics_thresholds: self.0.thresholds,
             files_metrics: Mutex::new(Vec::new()),
             ignored_files: Mutex::new(Vec::new()),
             sort_by: self.0.sort_by,
         }
         .run(self.0.n_threads)?;
 
-        self.print(&wcc_output, project_path.as_ref())?;
+        // Write json and/or html output.
+        self.print(&wcc_output, project_path, json_path)?;
 
         Ok(wcc_output)
     }
 
-    fn get_grcov(&self, project_path: &Path) -> Result<Grcov> {
-        let grcov = match &self.0.grcov_format {
-            GrcovFormat::Coveralls(coveralls_path) => {
+    fn get_grcov<P: AsRef<Path>>(
+        &self,
+        project_path: &Path,
+        grcov_file: GrcovFile<P>,
+    ) -> Result<Grcov> {
+        let grcov = match grcov_file {
+            GrcovFile::Coveralls(coveralls_path) => {
                 Grcov::Coveralls(Coveralls::new(coveralls_path.as_ref(), project_path)?)
             }
-            GrcovFormat::Covdir(covdir_path) => {
+            GrcovFile::Covdir(covdir_path) => {
                 Grcov::Covdir(Covdir::new(covdir_path.as_ref(), project_path)?)
             }
         };
@@ -169,20 +167,20 @@ impl<P: AsRef<Path>> WccRunner<P> {
         Ok(grcov)
     }
 
-    fn print(&self, wcc_output: &WccOutput, project_path: &Path) -> Result<()> {
+    fn print(&self, wcc_output: &WccOutput, project_path: &Path, json_path: &Path) -> Result<()> {
         JsonPrinter {
             project_path,
             wcc_output,
-            output_path: self.0.json_path.as_ref(),
+            output_path: json_path,
             mode: self.0.mode,
             thresholds: self.0.thresholds,
         }
         .print()?;
 
-        if let Some(html_path) = &self.0.html_path {
+        if let Some(html_path) = self.0.html_path {
             HtmlPrinter {
                 wcc_output,
-                output_path: html_path.as_ref(),
+                output_path: html_path,
                 mode: self.0.mode,
                 thresholds: self.0.thresholds,
             }
@@ -193,7 +191,7 @@ impl<P: AsRef<Path>> WccRunner<P> {
     }
 }
 
-impl<P: AsRef<Path>> Default for WccRunner<P> {
+impl Default for WccRunner<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -219,14 +217,17 @@ fn read_files(project_path: &Path) -> Result<Vec<PathBuf>> {
     let mut files = vec![];
     let mut stack = vec![project_path.to_path_buf()];
 
-    while let Some(path) = stack.pop() {
+    'outer: while let Some(path) = stack.pop() {
         if path.is_dir() {
             // Skip ./target directory and all its subdirectories.
-            if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
-                if dir_name.contains("target") {
-                    continue;
+            for ancestor in path.ancestors() {
+                if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
+                    if dir_name.contains("target") {
+                        continue 'outer;
+                    }
                 }
             }
+
             let mut entries = fs::read_dir(&path)?;
             entries.try_for_each(|entry| -> Result<()> {
                 stack.push(entry?.path());
@@ -243,41 +244,53 @@ fn read_files(project_path: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// Availabe grcov json file formats.
+#[derive(Debug, Clone, Copy)]
+pub enum GrcovFormat {
+    /// Coveralls.
+    Coveralls,
+    /// Covdir.
+    Covdir,
+}
+
+impl GrcovFormat {
+    /// All `GrcovFormat` options.
+    pub const fn all() -> &'static [&'static str] {
+        &["coveralls", "covdir"]
+    }
+}
+
+impl fmt::Display for GrcovFormat {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Self::Coveralls => "coveralls",
+            Self::Covdir => "covdir",
+        };
+        s.fmt(f)
+    }
+}
+
+impl FromStr for GrcovFormat {
+    type Err = std::io::Error;
+
+    fn from_str(grcov_format: &str) -> std::result::Result<Self, Self::Err> {
+        match grcov_format {
+            "coveralls" => Ok(Self::Coveralls),
+            "covdir" => Ok(Self::Covdir),
+            _ => Err(std::io::Error::new(
+                ErrorKind::Other,
+                format!("{grcov_format:?} is not a supported grcov format."),
+            )),
+        }
+    }
+}
+
+/// Grcov file passed as input argument.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GrcovFormat<P: Into<PathBuf>> {
+pub enum GrcovFile<P: AsRef<Path>> {
     /// Coveralls.
     Coveralls(P),
     /// Covdir.
     Covdir(P),
-}
-
-impl Default for GrcovFormat<PathBuf> {
-    fn default() -> Self {
-        Self::Coveralls(PathBuf::from("coveralls.json"))
-    }
-}
-
-impl<P: Into<PathBuf>> GrcovFormat<P> {
-    /// Parses cli coveralls argument.
-    pub fn coveralls_parser(
-        coveralls_file: &str,
-    ) -> std::result::Result<GrcovFormat<PathBuf>, Box<std::io::Error>> {
-        Ok(GrcovFormat::Coveralls(PathBuf::from(coveralls_file)))
-    }
-
-    /// Parses cli covdir argument.
-    pub fn covdir_parser(
-        covdir_file: &str,
-    ) -> std::result::Result<GrcovFormat<PathBuf>, Box<std::io::Error>> {
-        Ok(GrcovFormat::Covdir(PathBuf::from(covdir_file)))
-    }
-
-    fn into(self) -> GrcovFormat<PathBuf> {
-        match self {
-            GrcovFormat::Coveralls(coveralls_path) => GrcovFormat::Coveralls(coveralls_path.into()),
-            GrcovFormat::Covdir(covdir_path) => GrcovFormat::Covdir(covdir_path.into()),
-        }
-    }
 }
 
 /// Complexity Metrics.

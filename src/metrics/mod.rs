@@ -26,6 +26,7 @@ pub(crate) struct MetricsThresholds {
 }
 
 impl From<Thresholds> for MetricsThresholds {
+    #[inline]
     fn from(value: Thresholds) -> Self {
         MetricsThresholds {
             wcc: value.wcc,
@@ -38,6 +39,7 @@ impl From<Thresholds> for MetricsThresholds {
 }
 
 impl Default for MetricsThresholds {
+    #[inline]
     fn default() -> Self {
         Self {
             wcc: 60.0,
@@ -50,6 +52,7 @@ impl Default for MetricsThresholds {
 }
 
 impl MetricsThresholds {
+    #[inline]
     pub(crate) fn is_complex(
         &self,
         wcc: f64,
@@ -66,7 +69,7 @@ impl MetricsThresholds {
     }
 }
 
-// Get the root FuncSpace from a file.
+// Retrieve the root FuncSpace from a file.
 #[inline]
 pub(crate) fn get_root(path: &Path) -> Result<FuncSpace> {
     let source_code = read_file(path)?;
@@ -98,15 +101,15 @@ pub(crate) fn get_line_space(root: &FuncSpace, line: usize) -> &FuncSpace {
 }
 
 #[inline]
-pub(crate) fn get_space_name(space: &FuncSpace) -> Result<String> {
+pub(crate) fn get_space_name(space: &FuncSpace) -> Option<String> {
     let name = format!(
         "{}({}, {})",
-        space.name.as_ref().ok_or(Error::OptionRefConversion)?,
+        space.name.as_ref()?,
         space.start_line,
         space.end_line
     );
 
-    Ok(name)
+    Some(name)
 }
 
 // Round f64 to first decimal.

@@ -1,28 +1,28 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Parser;
 use tracing_subscriber::EnvFilter;
 
-use weighted_code_coverage::{GrcovFormat, Mode, Sort, Thresholds, WccRunner};
+use weighted_code_coverage::{GrcovFile, GrcovFormat, Mode, Sort, Thresholds, WccRunner};
 
 const fn thresholds_long_help() -> &'static str {
-    "Set the three thresholds in this order: -t wcc, cyclomatic_complexity, cognitive_complexity.\n
+    "The three threshold values are parsed in this order: wcc, cyclomatic complexity, cognitive complexity.\n
+    The input string must therefore follow the same order: `-t '60.0,10.0,10.0'`.
     The values must be floats.\n
     Wcc is a percentage value, so its value should be in the [0, 100] range.\n
     The complexities should tipically be in the [0, 15] range,\n
-    assuming that a code space with a complexity higher than 15 is too complex."
+    assuming that a code space with a complexity higher than 15 is too complex.\n
+    The default values are 60.0 for wcc and 10.0 for cycomatic and cognitive complexity."
 }
 
 const JSON_OUTPUT_PATH: &str = "wcc.json";
 
-fn select_arg<T>(first: Option<T>, second: Option<T>) -> T {
-    match (first, second) {
-        (Some(first), None) => Some(first),
-        (None, Some(second)) => Some(second),
-        _ => None,
+fn select_grcov<P: AsRef<Path>>(grcov_format: GrcovFormat, grcov_path: P) -> GrcovFile<P> {
+    match grcov_format {
+        GrcovFormat::Coveralls => GrcovFile::Coveralls(grcov_path),
+        GrcovFormat::Covdir => GrcovFile::Covdir(grcov_path),
     }
-    .unwrap()
 }
 
 #[derive(Parser, Debug)]
@@ -41,12 +41,13 @@ pub(crate) struct Args {
     /// Path of the project folder.
     #[clap(long, required = true, value_hint = clap::ValueHint::DirPath)]
     pub(crate) project_path: PathBuf,
-    /// Path of the grcov json file with coveralls format.
-    #[clap(long, required = true, conflicts_with = "covdir", value_parser = GrcovFormat::<PathBuf>::coveralls_parser, value_hint = clap::ValueHint::DirPath)]
-    coveralls: Option<GrcovFormat<PathBuf>>,
-    /// Path of the grcov json file with covdir format.
-    #[clap(long, required = true, conflicts_with = "coveralls", value_parser = GrcovFormat::<PathBuf>::covdir_parser, value_hint = clap::ValueHint::DirPath)]
-    covdir: Option<GrcovFormat<PathBuf>>,
+    /// Format of the grcov json file.
+    #[clap(long, required = true, value_parser = PossibleValuesParser::new(GrcovFormat::all())
+        .map(|s| s.parse::<GrcovFormat>().unwrap()))]
+    grcov_format: GrcovFormat,
+    /// Path of the grcov json file.
+    #[clap(long, required = true, value_hint = clap::ValueHint::FilePath)]
+    grcov_path: PathBuf,
     /// Choose complexity metric to use along with thresholds values.
     #[clap(long, default_value_t = Thresholds::default(), long_help = thresholds_long_help())]
     thresholds: Thresholds,
@@ -90,14 +91,24 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
         .with_writer(std::io::stderr)
         .init();
 
-    WccRunner::new()
+    // Initialize WccRunner.
+    let mut wcc_runner = WccRunner::new()
         .thresholds(args.thresholds)
         .n_threads(args.threads)
-        .grcov_format(select_arg(args.coveralls, args.covdir))
         .mode(args.mode)
-        .sort_by(args.sort)
-        .json_path(args.json)
-        .html_path(args.html)
-        .run(args.project_path)
+        .sort_by(args.sort);
+
+    // If present, set the path for the html output.
+    if let Some(html_path) = &args.html {
+        wcc_runner = wcc_runner.html_path(html_path);
+    }
+
+    // Run WccRunner.
+    wcc_runner
+        .run(
+            &args.project_path,
+            select_grcov(args.grcov_format, args.grcov_path),
+            &args.json,
+        )
         .unwrap();
 }

@@ -61,35 +61,33 @@ pub(crate) trait WccConcurrent {
     fn composer(&self, receiver: Receiver<Self::ConsumerItem>) -> Result<Self::Output>;
 
     // Executes the *producers-consumers-composer* pattern.
-    fn run(&self, n_threads: usize) -> Result<Self::Output>
+    fn run(self, n_threads: usize) -> Result<Self::Output>
     where
-        Self: Sync,
+        Self: Sync + Sized,
     {
-        let (producer_to_consumer_sender, producer_to_consumer_receiver) =
-            crossbeam::channel::bounded(n_threads);
-        let (consumer_to_composer_sender, consumer_to_composer_receiver) =
-            crossbeam::channel::bounded(n_threads);
+        let (producer_sender, consumer_receiver) = crossbeam::channel::bounded(n_threads);
+        let (consumer_sender, composer_receiver) = crossbeam::channel::bounded(n_threads);
 
-        match crossbeam::thread::scope(|scope| {
+        crossbeam::thread::scope(|scope| {
             // Producer
-            scope.spawn(|_| self.producer(producer_to_consumer_sender));
+            scope.spawn(|_| self.producer(producer_sender));
 
             // Composer
-            let composer = scope.spawn(|_| self.composer(consumer_to_composer_receiver));
+            let composer = scope.spawn(|_| self.composer(composer_receiver));
 
-            // Consumer
-            (0..n_threads).into_par_iter().try_for_each(move |_| {
-                self.consumer(
-                    producer_to_consumer_receiver.clone(),
-                    consumer_to_composer_sender.clone(),
-                )
+            // Consumer.
+            (0..n_threads).into_par_iter().try_for_each(|_| {
+                self.consumer(consumer_receiver.clone(), consumer_sender.clone())
             })?;
 
+            // The Sender between consumers and composer must be dropped to ensure the channel between them closes.
+            // Otherwise, the composer will indefinitely await data from the consumers.
+            drop(consumer_sender);
+
+            // Result produced by the composer.
             composer.join()?
-        }) {
-            Ok(output) => output,
-            Err(e) => Err(e.into()),
-        }
+        })
+        .map_err(Into::<Error>::into)?
     }
 }
 
@@ -99,35 +97,31 @@ pub(crate) enum Grcov {
 }
 
 impl Grcov {
-    fn get_lines_coverage(&self, file: &Path) -> Option<&[Option<i32>]> {
+    #[inline]
+    fn get_lines_coverage(&self, file: &Path) -> Option<&Vec<Option<i32>>> {
         match self {
-            Grcov::Coveralls(coveralls) => Some(&coveralls.0.get(file)?.coverage),
-            Grcov::Covdir(covdir) => Some(&covdir.source_files.get(file)?.coverage),
+            Grcov::Coveralls(coveralls) => coveralls.0.get(file).map(|c| &c.coverage),
+            Grcov::Covdir(covdir) => covdir.source_files.get(file).map(|c| &c.coverage),
         }
     }
 
-    fn get_file_name(&self, file: &Path, project_path: &Path) -> Result<String> {
+    fn get_file_name(&self, file: &Path, project_path: &Path) -> Option<String> {
         match self {
-            Grcov::Coveralls(coveralls) => Ok(coveralls
-                .0
-                .get(file)
-                .ok_or(Error::HashMap)?
-                .name
-                .to_str()
-                .ok_or(Error::Conversion)?
-                .to_string()),
-            Grcov::Covdir(_) => Ok(file
+            Grcov::Coveralls(coveralls) => {
+                coveralls.0.get(file)?.name.to_str().map(|s| s.to_string())
+            }
+            Grcov::Covdir(_) => file
                 .to_path_buf()
-                .strip_prefix(project_path)?
+                .strip_prefix(project_path)
+                .ok()?
                 .to_str()
-                .ok_or(Error::Conversion)?
-                .to_string()),
+                .map(|s| s.to_string()),
         }
     }
 }
 
 /// Metrics data.
-#[derive(Debug, Serialize, Clone, Copy)]
+#[derive(Debug, Serialize, Clone, Copy, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsData {
     /// Wcc.
@@ -137,14 +131,182 @@ pub struct MetricsData {
     /// Skunk.
     pub skunk: f64,
     /// Complexity.
-    pub complexity: Option<f64>,
+    pub complexity: f64,
     /// Inidcates whether one of the metrics exceeds the threshold.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_complex: Option<bool>,
+    pub is_complex: bool,
+}
+
+impl MetricsData {
+    fn file(
+        project_data: ProjectData,
+        metrics_thresholds: MetricsThresholds,
+        complexity_type: Complexity,
+    ) -> Self {
+        let coverage = project_data.covered_lines / project_data.ploc;
+        let (complexity, wcc_coverage) = match complexity_type {
+            Complexity::Cyclomatic => (
+                project_data.cyclomatic_complexity / project_data.num_spaces,
+                project_data.wcc_cyclomatic_coverage,
+            ),
+            Complexity::Cognitive => (
+                project_data.cognitive_complexity / project_data.num_spaces,
+                project_data.wcc_cognitive_coverage,
+            ),
+        };
+
+        let wcc = wcc(wcc_coverage, project_data.ploc);
+        let crap = crap(coverage, complexity);
+        let skunk = skunk(coverage, complexity);
+
+        Self {
+            wcc,
+            crap,
+            skunk,
+            complexity: round_sd(complexity),
+            is_complex: metrics_thresholds.is_complex(wcc, crap, skunk, complexity_type),
+        }
+    }
+
+    fn function(
+        space_data: SpaceData,
+        metrics_thresholds: MetricsThresholds,
+        complexity_type: Complexity,
+    ) -> Self {
+        let coverage = space_data.covered_lines / space_data.ploc;
+        let complexity = match complexity_type {
+            Complexity::Cyclomatic => space_data.cyclomatic_complexity,
+            Complexity::Cognitive => space_data.cognitive_complexity,
+        };
+
+        let wcc = wcc_function(complexity, space_data.covered_lines, space_data.ploc);
+        let crap = crap(coverage, complexity);
+        let skunk = skunk(coverage, complexity);
+
+        Self {
+            wcc,
+            crap,
+            skunk,
+            complexity,
+            is_complex: metrics_thresholds.is_complex(wcc, crap, skunk, complexity_type),
+        }
+    }
+
+    fn project_total(
+        project_data: ProjectData,
+        metrics_thresholds: MetricsThresholds,
+        complexity_type: Complexity,
+    ) -> Self {
+        let coverage = project_data.covered_lines / project_data.ploc;
+        let (complexity, wcc_coverage) = match complexity_type {
+            Complexity::Cyclomatic => (
+                project_data.cyclomatic_complexity / project_data.num_spaces,
+                project_data.wcc_cyclomatic_coverage,
+            ),
+            Complexity::Cognitive => (
+                project_data.cognitive_complexity / project_data.num_spaces,
+                project_data.wcc_cognitive_coverage,
+            ),
+        };
+
+        let wcc = round_sd((wcc_coverage / project_data.ploc) * 100.0);
+        let crap = crap(coverage, complexity);
+        let skunk = skunk(coverage, complexity);
+
+        Self {
+            wcc,
+            crap,
+            skunk,
+            complexity,
+            is_complex: metrics_thresholds.is_complex(wcc, crap, skunk, complexity_type),
+        }
+    }
+
+    const fn project_min() -> Self {
+        Self {
+            wcc: f64::MAX,
+            crap: f64::MAX,
+            skunk: f64::MAX,
+            complexity: f64::MAX,
+            is_complex: false,
+        }
+    }
+
+    #[inline]
+    fn update_project_min(
+        mut self,
+        other: MetricsData,
+        metrics_thresholds: MetricsThresholds,
+        complexity: Complexity,
+    ) -> Self {
+        self.wcc = self.wcc.min(other.wcc);
+        self.crap = self.crap.min(other.crap);
+        self.skunk = self.skunk.min(other.skunk);
+        self.complexity = self.complexity.min(other.complexity);
+        self.is_complex =
+            metrics_thresholds.is_complex(self.wcc, self.crap, self.skunk, complexity);
+
+        self
+    }
+
+    const fn project_max() -> Self {
+        Self {
+            wcc: f64::MIN,
+            crap: f64::MIN,
+            skunk: f64::MIN,
+            complexity: f64::MIN,
+            is_complex: false,
+        }
+    }
+
+    #[inline]
+    fn update_project_max(
+        mut self,
+        other: MetricsData,
+        metrics_thresholds: MetricsThresholds,
+        complexity: Complexity,
+    ) -> Self {
+        self.wcc = self.wcc.max(other.wcc);
+        self.crap = self.crap.max(other.crap);
+        self.skunk = self.skunk.max(other.skunk);
+        self.complexity = self.complexity.max(other.complexity);
+        self.is_complex =
+            metrics_thresholds.is_complex(self.wcc, self.crap, self.skunk, complexity);
+
+        self
+    }
+
+    #[inline]
+    fn sum(mut self, other: MetricsData) -> Self {
+        self.wcc += other.wcc;
+        self.crap += other.crap;
+        self.skunk += other.skunk;
+        self.complexity += other.complexity;
+
+        self
+    }
+
+    fn project_average(
+        self,
+        num_files: f64,
+        metrics_thresholds: MetricsThresholds,
+        complexity: Complexity,
+    ) -> Self {
+        let wcc = round_sd(self.wcc / num_files);
+        let crap = round_sd(self.crap / num_files);
+        let skunk = round_sd(self.skunk / num_files);
+
+        Self {
+            wcc,
+            crap,
+            skunk,
+            complexity: round_sd(self.complexity / num_files),
+            is_complex: metrics_thresholds.is_complex(wcc, crap, skunk, complexity),
+        }
+    }
 }
 
 /// Metrics.
-#[derive(Debug, Serialize, Clone, Copy)]
+#[derive(Debug, Serialize, Clone, Copy, Default)]
 pub struct Metrics {
     /// Cyclomatic.
     pub cyclomatic: MetricsData,
@@ -152,6 +314,115 @@ pub struct Metrics {
     pub cognitive: MetricsData,
     /// Coverage.
     pub coverage: f64,
+}
+
+impl Metrics {
+    fn file(project_data: ProjectData, metrics_thresholds: MetricsThresholds) -> Self {
+        Self {
+            cyclomatic: MetricsData::file(project_data, metrics_thresholds, Complexity::Cyclomatic),
+            cognitive: MetricsData::file(project_data, metrics_thresholds, Complexity::Cognitive),
+            coverage: round_sd((project_data.covered_lines / project_data.ploc) * 100.0),
+        }
+    }
+
+    fn function(space_data: SpaceData, metrics_thresholds: MetricsThresholds) -> Self {
+        Self {
+            cyclomatic: MetricsData::function(
+                space_data,
+                metrics_thresholds,
+                Complexity::Cyclomatic,
+            ),
+            cognitive: MetricsData::function(space_data, metrics_thresholds, Complexity::Cognitive),
+            coverage: round_sd((space_data.covered_lines / space_data.ploc) * 100.0),
+        }
+    }
+
+    fn project_total(project_data: ProjectData, metrics_thresholds: MetricsThresholds) -> Self {
+        let coverage = round_sd((project_data.covered_lines / project_data.ploc) * 100.0);
+        let cyclomatic =
+            MetricsData::project_total(project_data, metrics_thresholds, Complexity::Cyclomatic);
+        let cognitive =
+            MetricsData::project_total(project_data, metrics_thresholds, Complexity::Cognitive);
+
+        Self {
+            cyclomatic,
+            cognitive,
+            coverage,
+        }
+    }
+
+    const fn project_min() -> Self {
+        Self {
+            cyclomatic: MetricsData::project_min(),
+            cognitive: MetricsData::project_min(),
+            coverage: f64::MAX,
+        }
+    }
+
+    fn update_project_min(mut self, other: Metrics, metrics_thresholds: MetricsThresholds) -> Self {
+        self.cyclomatic = self.cyclomatic.update_project_min(
+            other.cyclomatic,
+            metrics_thresholds,
+            Complexity::Cyclomatic,
+        );
+        self.cognitive = self.cognitive.update_project_min(
+            other.cognitive,
+            metrics_thresholds,
+            Complexity::Cognitive,
+        );
+        self.coverage = self.coverage.min(other.coverage);
+
+        self
+    }
+
+    const fn project_max() -> Self {
+        Self {
+            cyclomatic: MetricsData::project_max(),
+            cognitive: MetricsData::project_max(),
+            coverage: f64::MIN,
+        }
+    }
+
+    fn update_project_max(mut self, other: Metrics, metrics_thresholds: MetricsThresholds) -> Self {
+        self.cyclomatic = self.cyclomatic.update_project_max(
+            other.cyclomatic,
+            metrics_thresholds,
+            Complexity::Cyclomatic,
+        );
+        self.cognitive = self.cognitive.update_project_max(
+            other.cognitive,
+            metrics_thresholds,
+            Complexity::Cognitive,
+        );
+        self.coverage = self.coverage.max(other.coverage);
+
+        self
+    }
+
+    #[inline]
+    fn project_sum(mut self, other: Metrics) -> Self {
+        self.cyclomatic = self.cyclomatic.sum(other.cyclomatic);
+        self.cognitive = self.cognitive.sum(other.cognitive);
+        self.coverage += other.coverage;
+
+        self
+    }
+
+    fn project_average(self, num_files: f64, metrics_thresholds: MetricsThresholds) -> Self {
+        let cyclomatic =
+            self.cyclomatic
+                .project_average(num_files, metrics_thresholds, Complexity::Cyclomatic);
+        let cognitive =
+            self.cognitive
+                .project_average(num_files, metrics_thresholds, Complexity::Cognitive);
+        let coverage = round_sd(self.coverage / num_files);
+
+        Self {
+            cyclomatic,
+            cognitive,
+            coverage,
+        }
+    }
 }
 
 /// Project metrics.
@@ -167,7 +438,18 @@ pub struct ProjectMetrics {
     pub average: Metrics,
 }
 
-#[derive(Default)]
+impl ProjectMetrics {
+    const fn new(total: Metrics, min: Metrics, max: Metrics, average: Metrics) -> Self {
+        Self {
+            total,
+            min,
+            max,
+            average,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
 pub(crate) struct ProjectData {
     num_spaces: f64,
     ploc: f64,
@@ -179,6 +461,29 @@ pub(crate) struct ProjectData {
 }
 
 impl ProjectData {
+    #[inline]
+    fn new(num_spaces: f64) -> Self {
+        Self {
+            num_spaces,
+            ..Default::default()
+        }
+    }
+
+    fn update(&mut self, space_data: &SpaceData) {
+        self.covered_lines += space_data.covered_lines;
+        if space_data.cyclomatic_complexity <= WCC_COMPLEXITY_THRESHOLD {
+            self.wcc_cyclomatic_coverage += space_data.covered_lines;
+        }
+        if space_data.cognitive_complexity <= WCC_COMPLEXITY_THRESHOLD {
+            self.wcc_cognitive_coverage += space_data.covered_lines;
+        }
+
+        self.ploc += space_data.ploc;
+        self.cyclomatic_complexity += space_data.cyclomatic_complexity;
+        self.cognitive_complexity += space_data.cognitive_complexity;
+    }
+
+    #[inline]
     fn merge(&mut self, other: ProjectData) {
         self.num_spaces += other.num_spaces;
         self.ploc += other.ploc;
@@ -201,7 +506,22 @@ pub struct WccOutput {
     pub ignored_files: Vec<String>,
 }
 
-struct SpaceData {
+impl WccOutput {
+    const fn new(
+        files: Vec<FileMetrics>,
+        project: ProjectMetrics,
+        ignored_files: Vec<String>,
+    ) -> Self {
+        Self {
+            files,
+            project,
+            ignored_files,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct SpaceData {
     ploc: f64,
     covered_lines: f64,
     cyclomatic_complexity: f64,
@@ -214,7 +534,7 @@ pub(crate) struct Wcc<'a> {
     pub(crate) files: &'a [PathBuf],
     pub(crate) mode: Mode,
     pub(crate) grcov: Grcov,
-    pub(crate) thresholds: MetricsThresholds,
+    pub(crate) metrics_thresholds: MetricsThresholds,
     pub(crate) files_metrics: Mutex<Vec<FileMetrics>>,
     pub(crate) ignored_files: Mutex<Vec<String>>,
     pub(crate) sort_by: Sort,
@@ -223,13 +543,9 @@ pub(crate) struct Wcc<'a> {
 impl<'a> Wcc<'a> {
     fn update_ignored_files(&self, file: &Path) -> Result<()> {
         let mut ignored_files = self.ignored_files.lock()?;
-        ignored_files.push(
-            file.to_path_buf()
-                .strip_prefix(self.project_path)?
-                .to_str()
-                .ok_or(Error::Conversion)?
-                .to_string(),
-        );
+        if let Some(file) = file.to_path_buf().strip_prefix(self.project_path)?.to_str() {
+            ignored_files.push(file.to_string())
+        }
 
         Ok(())
     }
@@ -260,82 +576,43 @@ impl<'a> Wcc<'a> {
         space: &FuncSpace,
         spaces: &mut HashMap<String, SpaceData>,
         line_is_covered: bool,
-    ) -> Result<()> {
-        let key = get_space_name(space)?;
-        spaces
-            .entry(key.to_owned())
-            .and_modify(|space_data| {
-                space_data.ploc += 1.0;
-                if line_is_covered {
-                    space_data.covered_lines += 1.0;
-                }
-            })
-            .or_insert(SpaceData {
-                ploc: 1.0,
-                covered_lines: if line_is_covered { 1.0 } else { 0.0 },
-                cyclomatic_complexity: space.metrics.cyclomatic.cyclomatic_sum(),
-                cognitive_complexity: space.metrics.cognitive.cognitive_sum(),
-                kind: space.kind,
-            });
-
-        Ok(())
+    ) {
+        if let Some(key) = get_space_name(space) {
+            spaces
+                .entry(key.to_owned())
+                .and_modify(|space_data| {
+                    space_data.ploc += 1.0;
+                    if line_is_covered {
+                        space_data.covered_lines += 1.0;
+                    }
+                })
+                .or_insert(SpaceData {
+                    ploc: 1.0,
+                    covered_lines: if line_is_covered { 1.0 } else { 0.0 },
+                    cyclomatic_complexity: space.metrics.cyclomatic.cyclomatic_sum(),
+                    cognitive_complexity: space.metrics.cognitive.cognitive_sum(),
+                    kind: space.kind,
+                });
+        }
     }
 
     fn get_functions_metrics(
         &self,
         spaces: HashMap<String, SpaceData>,
     ) -> Option<Vec<FunctionMetrics>> {
+        if let Mode::Files = self.mode {
+            return None;
+        }
+
         let functions: Vec<FunctionMetrics> = spaces
             .into_iter()
             .filter(|(_, data)| data.kind == SpaceKind::Function)
-            .map(|(s, data)| {
-                let coverage = data.covered_lines / data.ploc;
-                let wcc_cyclomatic =
-                    wcc_function(data.cyclomatic_complexity, data.covered_lines, data.ploc);
-                let wcc_cognitive =
-                    wcc_function(data.cognitive_complexity, data.covered_lines, data.ploc);
-                let crap_cyclomatic = crap(coverage, data.cyclomatic_complexity);
-                let crap_cognitive = crap(coverage, data.cognitive_complexity);
-                let skunk_cyclomatic = skunk(coverage, data.cyclomatic_complexity);
-                let skunk_cognitive = skunk(coverage, data.cognitive_complexity);
-
-                FunctionMetrics {
-                    name: s,
-                    metrics: Metrics {
-                        cyclomatic: MetricsData {
-                            wcc: wcc_cyclomatic,
-                            crap: crap_cyclomatic,
-                            skunk: skunk_cyclomatic,
-                            complexity: Some(data.cyclomatic_complexity),
-                            is_complex: Some(self.thresholds.is_complex(
-                                wcc_cyclomatic,
-                                crap_cyclomatic,
-                                skunk_cyclomatic,
-                                Complexity::Cyclomatic,
-                            )),
-                        },
-                        cognitive: MetricsData {
-                            wcc: wcc_cognitive,
-                            crap: crap_cognitive,
-                            skunk: skunk_cognitive,
-                            complexity: Some(data.cognitive_complexity),
-                            is_complex: Some(self.thresholds.is_complex(
-                                wcc_cognitive,
-                                crap_cognitive,
-                                skunk_cognitive,
-                                Complexity::Cognitive,
-                            )),
-                        },
-                        coverage: round_sd(coverage * 100.0),
-                    },
-                }
+            .map(|(name, space_data)| {
+                FunctionMetrics::new(name, space_data, self.metrics_thresholds)
             })
             .collect();
 
-        match functions.len() {
-            0 => None,
-            _ => Some(functions),
-        }
+        (!functions.is_empty()).then_some(functions)
     }
 
     fn compute_file_metrics(
@@ -343,83 +620,22 @@ impl<'a> Wcc<'a> {
         file: &Path,
         spaces: HashMap<String, SpaceData>,
     ) -> Result<ProjectData> {
-        let mut ploc = 0.0;
-        let mut covered_lines = 0.0;
-        let mut wcc_cyclomatic_coverage = 0.0;
-        let mut wcc_cognitive_coverage = 0.0;
-        let mut cyclomatic_complexity = 0.0;
-        let mut cognitive_complexity = 0.0;
-        spaces.values().for_each(|s| {
-            covered_lines += s.covered_lines;
-            if s.cyclomatic_complexity <= WCC_COMPLEXITY_THRESHOLD {
-                wcc_cyclomatic_coverage += s.covered_lines;
-            }
-            if s.cognitive_complexity <= WCC_COMPLEXITY_THRESHOLD {
-                wcc_cognitive_coverage += s.covered_lines;
-            }
-
-            ploc += s.ploc;
-            cyclomatic_complexity += s.cyclomatic_complexity;
-            cognitive_complexity += s.cognitive_complexity;
-        });
-
-        let num_spaces = spaces.len() as f64;
-        let coverage = covered_lines / ploc;
-        let avg_cycl_comp = cyclomatic_complexity / num_spaces;
-        let avg_cogn_comp = cognitive_complexity / num_spaces;
-
-        let wcc_cyclomatic = wcc(wcc_cyclomatic_coverage, ploc);
-        let crap_cyclomatic = crap(coverage, avg_cycl_comp);
-        let skunk_cyclomatic = skunk(coverage, avg_cycl_comp);
-        let wcc_cognitive = wcc(wcc_cognitive_coverage, ploc);
-        let crap_cognitive = crap(coverage, avg_cogn_comp);
-        let skunk_cognitive = skunk(coverage, avg_cogn_comp);
+        let mut project_data = ProjectData::new(spaces.len() as f64);
+        spaces
+            .values()
+            .for_each(|space_data| project_data.update(space_data));
 
         let mut files_metrics = self.files_metrics.lock()?;
-        files_metrics.push(FileMetrics {
-            name: self.grcov.get_file_name(file, self.project_path)?,
-            metrics: Metrics {
-                cyclomatic: MetricsData {
-                    wcc: wcc_cyclomatic,
-                    crap: crap_cyclomatic,
-                    skunk: skunk_cyclomatic,
-                    complexity: Some(round_sd(avg_cycl_comp)),
-                    is_complex: Some(self.thresholds.is_complex(
-                        wcc_cyclomatic,
-                        crap_cyclomatic,
-                        skunk_cyclomatic,
-                        Complexity::Cyclomatic,
-                    )),
-                },
-                cognitive: MetricsData {
-                    wcc: wcc_cognitive,
-                    crap: crap_cognitive,
-                    skunk: skunk_cognitive,
-                    complexity: Some(round_sd(avg_cogn_comp)),
-                    is_complex: Some(self.thresholds.is_complex(
-                        wcc_cognitive,
-                        crap_cognitive,
-                        skunk_cognitive,
-                        Complexity::Cyclomatic,
-                    )),
-                },
-                coverage: round_sd(coverage * 100.0),
-            },
-            functions: match self.mode {
-                Mode::Files => None,
-                Mode::Functions => self.get_functions_metrics(spaces),
-            },
-        });
+        if let Some(name) = self.grcov.get_file_name(file, self.project_path) {
+            files_metrics.push(FileMetrics::new(
+                name,
+                project_data,
+                self.metrics_thresholds,
+                self.get_functions_metrics(spaces),
+            ));
+        }
 
-        Ok(ProjectData {
-            num_spaces,
-            ploc,
-            covered_lines,
-            wcc_cyclomatic_coverage,
-            wcc_cognitive_coverage,
-            cyclomatic_complexity,
-            cognitive_complexity,
-        })
+        Ok(project_data)
     }
 
     fn get_spaces(
@@ -436,9 +652,10 @@ impl<'a> Wcc<'a> {
             .filter_map(|(line, coverage)| coverage.map(|cov| (line, cov)))
         {
             let space = get_line_space(&root, line);
-            match coverage {
-                0 => self.update_spaces(space, &mut spaces, false)?,
-                _ => self.update_spaces(space, &mut spaces, true)?,
+            if coverage == 0 {
+                self.update_spaces(space, &mut spaces, false);
+            } else {
+                self.update_spaces(space, &mut spaces, true);
             }
         }
 
@@ -446,12 +663,11 @@ impl<'a> Wcc<'a> {
     }
 
     fn compute_metrics(&self, file: &Path) -> Option<ProjectData> {
-        let lines_coverage = match self.grcov.get_lines_coverage(file) {
-            Some(c) => c,
-            None => {
-                self.update_ignored_files(file).ok()?;
-                return None;
-            }
+        let lines_coverage = if let Some(lines_coverage) = self.grcov.get_lines_coverage(file) {
+            lines_coverage
+        } else {
+            self.update_ignored_files(file).ok()?;
+            return None;
         };
         let spaces = self.get_spaces(file, lines_coverage).ok()?;
 
@@ -460,57 +676,9 @@ impl<'a> Wcc<'a> {
 
     fn get_project_min(&self) -> Result<Metrics> {
         let metrics = self.files_metrics.lock()?.iter().fold(
-            Metrics {
-                cyclomatic: MetricsData {
-                    wcc: f64::MAX,
-                    crap: f64::MAX,
-                    skunk: f64::MAX,
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: f64::MAX,
-                    crap: f64::MAX,
-                    skunk: f64::MAX,
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: f64::MAX,
-            },
-            |min_metrics, file_metrics| Metrics {
-                cyclomatic: MetricsData {
-                    wcc: min_metrics
-                        .cyclomatic
-                        .wcc
-                        .min(file_metrics.metrics.cyclomatic.wcc),
-                    crap: min_metrics
-                        .cyclomatic
-                        .crap
-                        .min(file_metrics.metrics.cyclomatic.crap),
-                    skunk: min_metrics
-                        .cyclomatic
-                        .skunk
-                        .min(file_metrics.metrics.cyclomatic.skunk),
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: min_metrics
-                        .cognitive
-                        .wcc
-                        .min(file_metrics.metrics.cognitive.wcc),
-                    crap: min_metrics
-                        .cognitive
-                        .crap
-                        .min(file_metrics.metrics.cognitive.crap),
-                    skunk: min_metrics
-                        .cognitive
-                        .skunk
-                        .min(file_metrics.metrics.cognitive.skunk),
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: min_metrics.coverage.min(file_metrics.metrics.coverage),
+            Metrics::project_min(),
+            |min_metrics, file_metrics| {
+                min_metrics.update_project_min(file_metrics.metrics, self.metrics_thresholds)
             },
         );
 
@@ -519,57 +687,9 @@ impl<'a> Wcc<'a> {
 
     fn get_project_max(&self) -> Result<Metrics> {
         let metrics = self.files_metrics.lock()?.iter().fold(
-            Metrics {
-                cyclomatic: MetricsData {
-                    wcc: f64::MIN,
-                    crap: f64::MIN,
-                    skunk: f64::MIN,
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: f64::MIN,
-                    crap: f64::MIN,
-                    skunk: f64::MIN,
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: f64::MIN,
-            },
-            |max_metrics, file_metrics| Metrics {
-                cyclomatic: MetricsData {
-                    wcc: max_metrics
-                        .cyclomatic
-                        .wcc
-                        .max(file_metrics.metrics.cyclomatic.wcc),
-                    crap: max_metrics
-                        .cyclomatic
-                        .crap
-                        .max(file_metrics.metrics.cyclomatic.crap),
-                    skunk: max_metrics
-                        .cyclomatic
-                        .skunk
-                        .max(file_metrics.metrics.cyclomatic.skunk),
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: max_metrics
-                        .cognitive
-                        .wcc
-                        .max(file_metrics.metrics.cognitive.wcc),
-                    crap: max_metrics
-                        .cognitive
-                        .crap
-                        .max(file_metrics.metrics.cognitive.crap),
-                    skunk: max_metrics
-                        .cognitive
-                        .skunk
-                        .max(file_metrics.metrics.cognitive.skunk),
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: max_metrics.coverage.max(file_metrics.metrics.coverage),
+            Metrics::project_max(),
+            |max_metrics, file_metrics| {
+                max_metrics.update_project_max(file_metrics.metrics, self.metrics_thresholds)
             },
         );
 
@@ -578,99 +698,22 @@ impl<'a> Wcc<'a> {
 
     fn get_project_average(&self) -> Result<Metrics> {
         let files_metrics = self.files_metrics.lock()?;
-        let num_files = files_metrics.len() as f64;
-        let sum_metrics = files_metrics.iter().fold(
-            Metrics {
-                cyclomatic: MetricsData {
-                    wcc: 0.0,
-                    crap: 0.0,
-                    skunk: 0.0,
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: 0.0,
-                    crap: 0.0,
-                    skunk: 0.0,
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: 0.0,
-            },
-            |sum_metrics, file_metrics| Metrics {
-                cyclomatic: MetricsData {
-                    wcc: sum_metrics.cyclomatic.wcc + file_metrics.metrics.cyclomatic.wcc,
-                    crap: sum_metrics.cyclomatic.crap + file_metrics.metrics.cyclomatic.crap,
-                    skunk: sum_metrics.cyclomatic.skunk + file_metrics.metrics.cyclomatic.skunk,
-                    complexity: None,
-                    is_complex: None,
-                },
-                cognitive: MetricsData {
-                    wcc: sum_metrics.cognitive.wcc + file_metrics.metrics.cognitive.wcc,
-                    crap: sum_metrics.cognitive.crap + file_metrics.metrics.cognitive.crap,
-                    skunk: sum_metrics.cognitive.skunk + file_metrics.metrics.cognitive.skunk,
-                    complexity: None,
-                    is_complex: None,
-                },
-                coverage: sum_metrics.coverage + file_metrics.metrics.coverage,
-            },
-        );
+        let sum_metrics = files_metrics
+            .iter()
+            .fold(Metrics::default(), |sum_metrics, file_metrics| {
+                sum_metrics.project_sum(file_metrics.metrics)
+            });
 
-        Ok(Metrics {
-            cyclomatic: MetricsData {
-                wcc: round_sd(sum_metrics.cyclomatic.wcc / num_files),
-                crap: round_sd(sum_metrics.cyclomatic.crap / num_files),
-                skunk: round_sd(sum_metrics.cyclomatic.skunk / num_files),
-                complexity: None,
-                is_complex: None,
-            },
-            cognitive: MetricsData {
-                wcc: round_sd(sum_metrics.cognitive.wcc / num_files),
-                crap: round_sd(sum_metrics.cognitive.crap / num_files),
-                skunk: round_sd(sum_metrics.cognitive.skunk / num_files),
-                complexity: None,
-                is_complex: None,
-            },
-            coverage: round_sd(sum_metrics.coverage / num_files),
-        })
-    }
-
-    fn get_project_total(&self, project_data: ProjectData) -> Metrics {
-        let coverage = project_data.covered_lines / project_data.ploc;
-        let avg_cycl_comp = project_data.cyclomatic_complexity / project_data.num_spaces;
-        let avg_cogn_comp = project_data.cognitive_complexity / project_data.num_spaces;
-
-        Metrics {
-            cyclomatic: MetricsData {
-                wcc: round_sd((project_data.wcc_cyclomatic_coverage / project_data.ploc) * 100.0),
-                crap: crap(coverage, avg_cycl_comp),
-                skunk: skunk(coverage, avg_cycl_comp),
-                complexity: None,
-                is_complex: None,
-            },
-            cognitive: MetricsData {
-                wcc: round_sd((project_data.wcc_cognitive_coverage / project_data.ploc) * 100.0),
-                crap: crap(coverage, avg_cogn_comp),
-                skunk: skunk(coverage, avg_cogn_comp),
-                complexity: None,
-                is_complex: None,
-            },
-            coverage: round_sd(coverage * 100.0),
-        }
+        Ok(sum_metrics.project_average(files_metrics.len() as f64, self.metrics_thresholds))
     }
 
     fn get_project_metrics(&self, project_data: ProjectData) -> Result<ProjectMetrics> {
+        let total = Metrics::project_total(project_data, self.metrics_thresholds);
         let min = self.get_project_min()?;
         let max = self.get_project_max()?;
         let average = self.get_project_average()?;
-        let total = self.get_project_total(project_data);
 
-        Ok(ProjectMetrics {
-            min,
-            max,
-            average,
-            total,
-        })
+        Ok(ProjectMetrics::new(total, min, max, average))
     }
 }
 
@@ -698,7 +741,6 @@ impl<'a> WccConcurrent for Wcc<'a> {
                 project_data.merge(file_data);
             }
         }
-
         sender.send(project_data)?;
 
         Ok(())
@@ -713,10 +755,10 @@ impl<'a> WccConcurrent for Wcc<'a> {
         let project_metrics = self.get_project_metrics(project_data)?;
         self.sort_output()?;
 
-        Ok(WccOutput {
-            files: self.files_metrics.lock()?.clone(),
-            project: project_metrics,
-            ignored_files: self.ignored_files.lock()?.clone(),
-        })
+        Ok(WccOutput::new(
+            self.files_metrics.lock()?.clone(),
+            project_metrics,
+            self.ignored_files.lock()?.clone(),
+        ))
     }
 }

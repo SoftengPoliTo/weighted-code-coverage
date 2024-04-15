@@ -144,48 +144,56 @@ project:
       wcc: 64.8
       crap: 9.4
       skunk: 11.8
-      complexity: ~
+      complexity: 8.517241379310345
+      isComplex: false
     cognitive:
       wcc: 56
       crap: 6.6
       skunk: 8.5
-      complexity: ~
+      complexity: 6.149425287356322
+      isComplex: true
     coverage: 77.2
   min:
     cyclomatic:
       wcc: 0
       crap: 1
       skunk: 1
-      complexity: ~
+      complexity: 1
+      isComplex: true
     cognitive:
       wcc: 0
       crap: 0
       skunk: 0
-      complexity: ~
+      complexity: 0
+      isComplex: true
     coverage: 0
   max:
     cyclomatic:
       wcc: 100
       crap: 76.5
       skunk: 23.1
-      complexity: ~
+      complexity: 10.3
+      isComplex: true
     cognitive:
       wcc: 100
       crap: 9.8
       skunk: 11.2
-      complexity: ~
+      complexity: 9.1
+      isComplex: false
     coverage: 100
   average:
     cyclomatic:
       wcc: 54.8
       crap: 20.7
       skunk: 10.4
-      complexity: ~
+      complexity: 6.3
+      isComplex: true
     cognitive:
       wcc: 49.9
       crap: 4.8
       skunk: 5.2
-      complexity: ~
+      complexity: 3.6
+      isComplex: true
     coverage: 62.4
 ignored_files:
   - src/action.rs

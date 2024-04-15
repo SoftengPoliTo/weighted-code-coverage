@@ -1,11 +1,9 @@
 name: weighted-code-coverage
 
-# TODO: after merge on main remove tests-refactor from branches.
 on:
   push:
     branches:
       - master
-      - tests-refactor
     paths:
       - "src/**"
       - "tests/**"
@@ -193,19 +191,10 @@ jobs:
         cd $HOME/wcc
         cargo install --path .
 
-    - name: Install llvm-tools-preview
-      run: |
-        rustup component add llvm-tools-preview
-
-    # Not necessary on a newly created image, but strictly advised
-    - name: Run cargo clean
-      run: |
-        cargo clean
-
     - name: Run tests
       env:
         RUSTFLAGS: "-Cinstrument-coverage"
-        LLVM_PROFILE_FILE: "generate-ci-%p-%m.profraw"
+        LLVM_PROFILE_FILE: "weighted-code-coverage-%p-%m.profraw"
       run: |
         cargo test --verbose
 
@@ -216,7 +205,7 @@ jobs:
     - name: Run weighted-code-coverage
       run: |
         mkdir wcc-output
-        weighted-code-coverage --project-path ./ --coveralls ./coveralls.json -m functions --json ./wcc.json --html ./wcc-output/
+        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ./wcc.json --html ./wcc-output/
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v4.0.0
@@ -303,16 +292,6 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ steps.extract-branch.outputs.branch }}
-    
-    - name: Find comment
-      id: find-comment
-      if: github.event_name == 'pull_request'
-      uses: peter-evans/find-comment@v3
-      with:
-        issue-number: ${{ github.event.pull_request.number }}
-        comment-author: 'github-actions[bot]'
-        body-includes: |
-          ## Weighted Code Coverage
 
     - name: Create or update comment
       if: github.event_name == 'pull_request'
@@ -326,7 +305,7 @@ jobs:
         SKUNK_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.skunk }}
         SKUNK_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.skunk }}
       with:
-        comment-id: ${{ steps.find-comment.outputs.comment-id }}
+        comment-id: ${{ github.event.comment.id }}
         issue-number: ${{ github.event.pull_request.number }}
         body: |
           ## Weighted Code Coverage
