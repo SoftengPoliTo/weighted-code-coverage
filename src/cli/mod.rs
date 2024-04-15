@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use clap::builder::{PossibleValuesParser, TypedValueParser};
 use clap::Parser;
@@ -17,13 +17,6 @@ const fn thresholds_long_help() -> &'static str {
 }
 
 const JSON_OUTPUT_PATH: &str = "wcc.json";
-
-fn select_grcov<P: AsRef<Path>>(grcov_format: GrcovFormat, grcov_path: P) -> GrcovFile<P> {
-    match grcov_format {
-        GrcovFormat::Coveralls => GrcovFile::Coveralls(grcov_path),
-        GrcovFormat::Covdir => GrcovFile::Covdir(grcov_path),
-    }
-}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -98,17 +91,19 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
         .mode(args.mode)
         .sort_by(args.sort);
 
-    // If present, set the path for the html output.
+    // If present, set the path of the html output directory.
     if let Some(html_path) = &args.html {
         wcc_runner = wcc_runner.html_path(html_path);
     }
 
+    // Define the grcov file.
+    let grcov_file = match args.grcov_format {
+        GrcovFormat::Coveralls => GrcovFile::Coveralls(args.grcov_path),
+        GrcovFormat::Covdir => GrcovFile::Covdir(args.grcov_path),
+    };
+
     // Run WccRunner.
     wcc_runner
-        .run(
-            &args.project_path,
-            select_grcov(args.grcov_format, args.grcov_path),
-            &args.json,
-        )
+        .run(&args.project_path, grcov_file, &args.json)
         .unwrap();
 }

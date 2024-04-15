@@ -80,8 +80,8 @@ pub(crate) trait WccConcurrent {
                 self.consumer(consumer_receiver.clone(), consumer_sender.clone())
             })?;
 
-            // The Sender between consumers and composer must be dropped to ensure the channel between them closes.
-            // Otherwise, the composer will indefinitely await data from the consumers.
+            // The Sender between consumers and composer must be dropped so that shared channels can be closed.
+            // Otherwise, the composer will eternally await data from the consumers.
             drop(consumer_sender);
 
             // Result produced by the composer.
@@ -105,17 +105,10 @@ impl Grcov {
         }
     }
 
-    fn get_file_name(&self, file: &Path, project_path: &Path) -> Option<String> {
+    fn get_file_name<'a>(&'a self, file: &'a Path, project_path: &Path) -> Option<&str> {
         match self {
-            Grcov::Coveralls(coveralls) => {
-                coveralls.0.get(file)?.name.to_str().map(|s| s.to_string())
-            }
-            Grcov::Covdir(_) => file
-                .to_path_buf()
-                .strip_prefix(project_path)
-                .ok()?
-                .to_str()
-                .map(|s| s.to_string()),
+            Grcov::Coveralls(coveralls) => coveralls.0.get(file)?.name.to_str(),
+            Grcov::Covdir(_) => file.strip_prefix(project_path).ok()?.to_str(),
         }
     }
 }
@@ -543,7 +536,7 @@ pub(crate) struct Wcc<'a> {
 impl<'a> Wcc<'a> {
     fn update_ignored_files(&self, file: &Path) -> Result<()> {
         let mut ignored_files = self.ignored_files.lock()?;
-        if let Some(file) = file.to_path_buf().strip_prefix(self.project_path)?.to_str() {
+        if let Some(file) = file.strip_prefix(self.project_path)?.to_str() {
             ignored_files.push(file.to_string())
         }
 
@@ -628,7 +621,7 @@ impl<'a> Wcc<'a> {
         let mut files_metrics = self.files_metrics.lock()?;
         if let Some(name) = self.grcov.get_file_name(file, self.project_path) {
             files_metrics.push(FileMetrics::new(
-                name,
+                name.to_owned(),
                 project_data,
                 self.metrics_thresholds,
                 self.get_functions_metrics(spaces),
@@ -652,11 +645,7 @@ impl<'a> Wcc<'a> {
             .filter_map(|(line, coverage)| coverage.map(|cov| (line, cov)))
         {
             let space = get_line_space(&root, line);
-            if coverage == 0 {
-                self.update_spaces(space, &mut spaces, false);
-            } else {
-                self.update_spaces(space, &mut spaces, true);
-            }
+            self.update_spaces(space, &mut spaces, coverage != 0);
         }
 
         Ok(spaces)

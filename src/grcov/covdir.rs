@@ -113,6 +113,10 @@ fn get_file_path(project_path: &Path, file_relative_path: &Path) -> PathBuf {
 
 #[inline]
 fn parse_coverage(json_coverage: &[Value]) -> Vec<Option<i32>> {
+    // Coverage values are converted to `Option<i32>`
+    // to be consistent with the coveralls format,
+    // that uses `null` instead of -1 to represent SLOC lines,
+    // which are comment or blank lines that don't require coverage.
     json_coverage
         .iter()
         .filter_map(|c| c.as_i64())

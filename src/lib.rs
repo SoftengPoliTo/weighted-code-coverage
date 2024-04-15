@@ -221,10 +221,13 @@ fn read_files(project_path: &Path) -> Result<Vec<PathBuf>> {
         if path.is_dir() {
             // Skip ./target directory and all its subdirectories.
             for ancestor in path.ancestors() {
-                if let Some(dir_name) = ancestor.file_name().and_then(|n| n.to_str()) {
-                    if dir_name.contains("target") {
-                        continue 'outer;
-                    }
+                if ancestor
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(|dir| dir.contains("target"))
+                    .unwrap_or(false)
+                {
+                    continue 'outer;
                 }
             }
 
@@ -244,7 +247,7 @@ fn read_files(project_path: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// Availabe grcov json file formats.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum GrcovFormat {
     /// Coveralls.
     Coveralls,

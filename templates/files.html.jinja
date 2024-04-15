@@ -6,9 +6,9 @@
         <i class="fas fa-file"></i>
       </span>
       {% if file[0] == none %}
-      <span>{{ file[1].name }}</span>
+      <span class="no-wrap">{{ file[1].name }}</span>
       {% else %}
-      <a href="{{ file[0] }}">{{ file[1].name }}</a>
+      <a class="no-wrap" href="{{ file[0] }}">{{ file[1].name }}</a>
       {% endif %}
     </span>
     </span>
@@ -66,9 +66,9 @@
         <i class="fas fa-file"></i>
       </span>
       {% if file[0] == none %}
-      <span>{{ file[1].name }}</span>
+      <span class="no-wrap">{{ file[1].name }}</span>
       {% else %}
-      <a href="{{ file[0] }}">{{ file[1].name }}</a>
+      <a class="no-wrap" href="{{ file[0] }}">{{ file[1].name }}</a>
       {% endif %}
     </span>
     </span>
