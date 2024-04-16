@@ -206,11 +206,14 @@ jobs:
 
     - name: Run weighted-code-coverage
       id: wcc-run
+      env:
+        HTML: $HOME/wcc-output/
+        JSON: $HOME/wcc-output/wcc.json
       run: |
-        mkdir $HOME/wcc-output
-        echo "html_path=$HOME/wcc-output" >> $GITHUB_OUTPUT
-        echo "json_path=$HOME/wcc-output/wcc.json" >> $GITHUB_OUTPUT
-        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json $HOME/wcc-output/wcc.json --html $HOME/wcc-output/
+        mkdir ${HTML}
+        echo "html=${HTML}" >> $GITHUB_OUTPUT
+        echo "json=${JSON}" >> $GITHUB_OUTPUT
+        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ${JSON} --html ${HTML}
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v5.0.0
@@ -220,7 +223,7 @@ jobs:
     - name: Upload Wcc html output
       uses: actions/upload-pages-artifact@v3.0.1
       with:
-        path: ${{ steps.wcc-run.outputs.html_path }}
+        path: ${{ steps.wcc-run.outputs.html }}
 
     - name: Deploy to GitHub Pages
       id: deployment
@@ -229,7 +232,7 @@ jobs:
     - name: Extract metric values
       id: metrics
       env:
-        JSON: ${{ steps.wcc-run.outputs.json_path }}
+        JSON: ${{ steps.wcc-run.outputs.json }}
       run: |
         content=`cat ${JSON}`
         echo "json=$content" >> $GITHUB_OUTPUT
