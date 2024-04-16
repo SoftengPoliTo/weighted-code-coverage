@@ -181,7 +181,6 @@ jobs:
         tar xj -C $HOME/.cargo/bin
 
     - name: Install weighted-code-coverage
-      env:
       run: |
         cargo install --path .
 
