@@ -74,7 +74,7 @@ tippy('.file-table', {
 });
 
 tippy('.complexity-table', {
-    content: 'Average <b>complexity</b> among file code spaces.',
+    content: 'Average <b>complexity</b> among file code spaces. This value is used in the computation of file <em>CRAP</em> and <em>Skunk</em>.',
     allowHTML: true
 });
 

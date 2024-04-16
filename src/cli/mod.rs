@@ -6,17 +6,16 @@ use tracing_subscriber::EnvFilter;
 
 use weighted_code_coverage::{GrcovFile, GrcovFormat, Mode, Sort, Thresholds, WccRunner};
 
-const fn thresholds_long_help() -> &'static str {
-    "The three threshold values are parsed in this order: wcc, cyclomatic complexity, cognitive complexity.\n
-    The input string must therefore follow the same order: `-t '60.0,10.0,10.0'`.
-    The values must be floats.\n
-    Wcc is a percentage value, so its value should be in the [0, 100] range.\n
-    The complexities should tipically be in the [0, 15] range,\n
-    assuming that a code space with a complexity higher than 15 is too complex.\n
-    The default values are 60.0 for wcc and 10.0 for cycomatic and cognitive complexity."
+#[inline]
+fn thresholds_long_help() -> &'static str {
+    "The three threshold values are parsed in this order: wcc, cyclomatic complexity, cognitive complexity.
+The input string must therefore follow the same order: `-t '60.0,10.0,10.0'`.
+Wcc is a percentage value, so its value should be in the [0, 100] range.
+The complexities should tipically be in the [0, 15] range,
+assuming that a code space with a complexity higher than 15 is too complex."
 }
 
-const JSON_OUTPUT_PATH: &str = "wcc.json";
+const JSON_OUTPUT_PATH: &str = "./wcc.json";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -51,7 +50,7 @@ pub(crate) struct Args {
     #[clap(long, short = 'm', default_value_t = Mode::Files, value_parser = PossibleValuesParser::new(Mode::all())
         .map(|s| s.parse::<Mode>().unwrap()))]
     mode: Mode,
-    /// Sort complex value with the chosen metric.
+    /// Sort output files and functions with the chosen metric.
     #[clap(long, short = 's', default_value_t = Sort::Wcc, value_parser = PossibleValuesParser::new(Sort::all())
         .map(|s| s.parse::<Sort>().unwrap()))]
     sort: Sort,

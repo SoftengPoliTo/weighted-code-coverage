@@ -1,5 +1,5 @@
 {% extends "base.html" %} {% block files_rows %}
-<tr class="cyclomatic {% if file[1].metrics.cyclomatic.is_complex %}complex{% else %}not-complex{% endif %}">
+<tr class="cyclomatic {% if file[1].metrics.cyclomatic.isComplex %}complex{% else %}not-complex{% endif %}">
   <td class="is-vcentered">
     <span class="icon-text is-flex-wrap-nowrap">
       <span class="icon">
@@ -59,7 +59,7 @@
     {{ file[1].metrics.cyclomatic.skunk }}
   </td>
 </tr>
-<tr class="cognitive is-hidden {% if file[1].metrics.cognitive.is_complex %}complex{% else %}not-complex{% endif %}">
+<tr class="cognitive is-hidden {% if file[1].metrics.cognitive.isComplex %}complex{% else %}not-complex{% endif %}">
   <td class="is-vcentered">
     <span class="icon-text is-flex-wrap-nowrap">
       <span class="icon">

@@ -255,7 +255,7 @@
           <tbody>
             {% for function in file.functions %}
             <tr
-              class="cyclomatic {% if function.metrics.cyclomatic.is_complex %}complex{% else %}not-complex{% endif %}">
+              class="cyclomatic {% if function.metrics.cyclomatic.isComplex %}complex{% else %}not-complex{% endif %}">
               <td class="is-vcentered">
                 <span class="no-wrap">{{ function.name }}</span>
               </td>
@@ -306,7 +306,7 @@
               </td>
             </tr>
             <tr
-              class="cognitive is-hidden {% if function.metrics.cognitive.is_complex %}complex{% else %}not-complex{% endif %}">
+              class="cognitive is-hidden {% if function.metrics.cognitive.isComplex %}complex{% else %}not-complex{% endif %}">
               <td class="is-vcentered">
                 <span class="no-wrap">{{ function.name }}</span>
               </td>

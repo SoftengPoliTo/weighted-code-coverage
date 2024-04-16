@@ -223,9 +223,8 @@ fn read_files(project_path: &Path) -> Result<Vec<PathBuf>> {
             for ancestor in path.ancestors() {
                 if ancestor
                     .file_name()
-                    .and_then(|n| n.to_str())
-                    .map(|dir| dir.contains("target"))
-                    .unwrap_or(false)
+                    .and_then(|name| name.to_str())
+                    .map_or(false, |dir| dir.contains("target"))
                 {
                     continue 'outer;
                 }
