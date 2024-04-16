@@ -180,14 +180,13 @@ jobs:
         curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
         tar xj -C $HOME/.cargo/bin
 
-    # TODO: after merge on main use the release instead of git clone and git install
     - name: Install weighted-code-coverage
       env:
         WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
         WCC_VERSION: v0.2.0
         WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
       run: |
-        git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git $HOME/wcc
+        git clone https://github.com/SoftengPoliTo/weighted-code-coverage.git $HOME/wcc
         cd $HOME/wcc
         cargo install --path .
 
