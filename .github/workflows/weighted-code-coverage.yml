@@ -329,7 +329,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Check dependencies changes
-      uses: dorny/paths-filter@v2
+      uses: dorny/paths-filter@v3
       id: changes
       with:
         filters: |
@@ -353,7 +353,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Check dependencies changes
-      uses: dorny/paths-filter@v2
+      uses: dorny/paths-filter@v3
       id: changes
       with:
         filters: |
@@ -377,7 +377,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Check dependencies changes
-      uses: dorny/paths-filter@v2
+      uses: dorny/paths-filter@v3
       id: changes
       with:
         filters: |
