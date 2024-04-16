@@ -206,14 +206,11 @@ jobs:
 
     - name: Run weighted-code-coverage
       id: wcc-run
-      env:
-        HTML: $HOME/wcc-output
-        JSON: $HOME/wcc-output/wcc.json
       run: |
-        mkdir ${HTML}
-        echo "html=${HTML}" >> $GITHUB_OUTPUT
-        echo "json=${JSON}" >> $GITHUB_OUTPUT
-        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ${JSON} --html ${HTML}
+        mkdir $HOME/wcc-output
+        echo "html=$HOME/wcc-output" >> $GITHUB_OUTPUT
+        echo "json=$HOME/wcc-output/wcc.json" >> $GITHUB_OUTPUT
+        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json $HOME/wcc-output/wcc.json --html $HOME/wcc-output/
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v5.0.0
