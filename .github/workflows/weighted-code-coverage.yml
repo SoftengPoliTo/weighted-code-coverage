@@ -44,8 +44,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -77,8 +75,6 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -98,8 +94,6 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -117,8 +111,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -156,8 +148,7 @@ jobs:
 
   weighted-code-coverage:
 
-    # TODO: uncomment
-    # needs: [build, docs]
+    needs: [build, docs]
 
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages 
     # and pull-requests write pemission for the pull request comment.
@@ -331,8 +322,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -357,8 +346,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -383,8 +370,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -422,8 +407,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
@@ -450,8 +433,6 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    # TODO: remove
-    if: false
     steps:
     - uses: actions/checkout@v4
 
