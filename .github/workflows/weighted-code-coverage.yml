@@ -160,7 +160,7 @@ jobs:
 
     environment:
       name: wcc
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: steps.deployment.outputs.page_url
 
     runs-on: ubuntu-latest
 
@@ -211,7 +211,7 @@ jobs:
     - name: Upload Wcc html output
       uses: actions/upload-pages-artifact@v3.0.1
       with:
-        path: ${{ steps.wcc-run.outputs.html }}
+        path: steps.wcc-run.outputs.html
 
     - name: Deploy to GitHub Pages
       id: deployment
@@ -220,7 +220,7 @@ jobs:
     - name: Extract metric values
       id: metrics
       env:
-        JSON: ${{ steps.wcc-run.outputs.json }}
+        JSON: steps.wcc-run.outputs.json
       run: |
         content=`cat ${JSON}`
         echo "json=$content" >> $GITHUB_OUTPUT
@@ -240,7 +240,7 @@ jobs:
     - name: Create badge directory
       if: github.event_name != 'pull_request'
       env:
-        BADGE_PATH: ${{ steps.badge-path.outputs.path }}
+        BADGE_PATH: steps.badge-path.outputs.path
       run: mkdir -p "${BADGE_PATH%/*}" 
 
     - name: Determine badge color
@@ -262,20 +262,20 @@ jobs:
       with:
         label: wcc
         status: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}%
-        color: ${{ steps.badge-color.outputs.color }}
-        path: ${{ steps.badge-path.outputs.path }}
+        color: steps.badge-color.outputs.color
+        path: steps.badge-path.outputs.path
 
     - name: Verify if badge changed
       if: github.event_name != 'pull_request'
       uses: tj-actions/verify-changed-files@v19
       id: badge-changed 
       with:
-        files: ${{ steps.badge-path.outputs.path }}
+        files: steps.badge-path.outputs.path
       
     - name: Commit badge
       if: ${{ github.event_name != 'pull_request' && steps.badge-changed.outputs.files_changed == 'true' }}
       env:
-        BADGE: ${{ steps.badge-path.outputs.path }}
+        BADGE: steps.badge-path.outputs.path
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
@@ -287,7 +287,7 @@ jobs:
       if: ${{ github.event_name != 'pull_request' && success() }}
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ steps.extract-branch.outputs.branch }}
+        branch: steps.extract-branch.outputs.branch
 
     - name: Create or update comment
       if: github.event_name == 'pull_request'
