@@ -207,7 +207,7 @@ jobs:
     - name: Run weighted-code-coverage
       id: wcc-run
       env:
-        HTML: $HOME/wcc-output/
+        HTML: $HOME/wcc-output
         JSON: $HOME/wcc-output/wcc.json
       run: |
         mkdir ${HTML}
