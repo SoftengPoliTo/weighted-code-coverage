@@ -207,7 +207,7 @@ jobs:
         weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ./wcc.json --html ./wcc-output/
 
     - name: Setup GitHub Pages
-      uses: actions/configure-pages@v4.0.0
+      uses: actions/configure-pages@v5.0.0
       with:
         enablement: true
 
