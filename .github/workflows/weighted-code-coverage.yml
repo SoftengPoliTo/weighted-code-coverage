@@ -182,12 +182,7 @@ jobs:
 
     - name: Install weighted-code-coverage
       env:
-        WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
-        WCC_VERSION: v0.2.0
-        WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
       run: |
-        git clone https://github.com/SoftengPoliTo/weighted-code-coverage.git $HOME/wcc
-        cd $HOME/wcc
         cargo install --path .
 
     - name: Run tests
@@ -203,8 +198,8 @@ jobs:
 
     - name: Run weighted-code-coverage
       run: |
-        mkdir wcc-output
-        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ./wcc.json --html ./wcc-output/
+        mkdir $HOME/wcc-output
+        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json $HOME/wcc-output/wcc.json --html $HOME/wcc-output/
 
     - name: Setup GitHub Pages
       uses: actions/configure-pages@v5.0.0
@@ -214,7 +209,7 @@ jobs:
     - name: Upload Wcc html output
       uses: actions/upload-pages-artifact@v3.0.1
       with:
-        path: wcc-output
+        path: $HOME/wcc-output
 
     - name: Deploy to GitHub Pages
       id: deployment
@@ -223,7 +218,7 @@ jobs:
     - name: Extract metric values
       id: metrics
       env:
-        JSON: ./wcc.json
+        JSON: $HOME/wcc-output/wcc.json
       run: |
         content=`cat ${JSON}`
         echo "json=$content" >> $GITHUB_OUTPUT
