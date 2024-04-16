@@ -156,7 +156,8 @@ jobs:
 
   weighted-code-coverage:
 
-    needs: [build, docs]
+    # TODO: uncomment
+    # needs: [build, docs]
 
     # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages 
     # and pull-requests write pemission for the pull request comment.
