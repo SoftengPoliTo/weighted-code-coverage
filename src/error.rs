@@ -1,13 +1,17 @@
-use std::sync::PoisonError;
+use std::{path::StripPrefixError, sync::PoisonError};
 
 use crossbeam::channel::SendError;
 use thiserror::Error;
 
-/// Customized error messages using thiserror library
+/// Customized error messages using thiserror library.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Error while reading Files from project folder")]
     WrongFile(#[from] std::io::Error),
+    #[error("Error while stripping the prefix")]
+    StripPrefix(#[from] StripPrefixError),
+    #[error("Error while parsing function space name")]
+    FuncSpaceName,
     #[error("Error while reading json")]
     WrongJSONFile(#[from] serde_json::Error),
     #[error("Error while converting JSON value to a type")]
@@ -28,14 +32,16 @@ pub enum Error {
     Type,
     #[error("Error while converting path to string")]
     PathConversion,
+    #[error("{0}")]
+    OutputPath(&'static str),
+    #[error("Error while converting &Option<T> to &T")]
+    OptionRefConversion,
     #[error("Error while locking mutex")]
     Mutex,
-    #[error("Thresholds must be only 4 in this order -t WCC_PLAIN, WCC_QUANTIZED, CRAP, SKUNK")]
-    Thresholds,
     #[error("Error while sending job via sender")]
     Sender,
     #[error("Error while creating HTML file")]
-    Html(#[from] tera::Error),
+    Html(#[from] minijinja::Error),
 }
 
 pub(crate) type Result<T> = ::std::result::Result<T, Error>;

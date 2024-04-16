@@ -5,22 +5,22 @@ on:
     branches:
       - master
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'crates/**'
-      - '.github/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
+      - "src/**"
+      - "tests/**"
+      - "crates/**"
+      - ".github/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
   pull_request:
     branches:
       - master
     paths:
-      - 'src/**'
-      - 'tests/**'
-      - 'crates/**'
-      - '.github/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
+      - "src/**"
+      - "tests/**"
+      - "crates/**"
+      - ".github/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
 
 env:
   #
@@ -150,6 +150,18 @@ jobs:
 
     needs: [build, docs]
 
+    # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages 
+    # and pull-requests write pemission for the pull request comment.
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+      pull-requests: write
+
+    environment:
+      name: wcc
+      url: ${{ steps.deployment.outputs.page_url }}
+
     runs-on: ubuntu-latest
 
     steps:
@@ -168,12 +180,16 @@ jobs:
         curl -L "$GRCOV_LINK/v$GRCOV_VERSION/$GRCOV_BINARY" |
         tar xj -C $HOME/.cargo/bin
 
+    # TODO: after merge on main use the release instead of git clone and git install
     - name: Install weighted-code-coverage
       env:
         WCC_LINK: https://github.com/SoftengPoliTo/weighted-code-coverage/releases/download
+        WCC_VERSION: v0.2.0
+        WCC_BINARY: weighted-code-coverage-0.2.0-x86_64-unknown-linux-gnu.tar.gz
       run: |
-        curl -L "$WCC_LINK/v$WCC_VERSION/weighted-code-coverage-$WCC_VERSION-x86_64-unknown-linux-gnu.tar.gz" |
-        tar xz -C $HOME/.cargo/bin
+        git clone --branch tests-refactor https://github.com/SoftengPoliTo/weighted-code-coverage.git $HOME/wcc
+        cd $HOME/wcc
+        cargo install --path .
 
     - name: Run tests
       env:
@@ -184,18 +200,123 @@ jobs:
 
     - name: Run grcov
       run: |
-        grcov . --binary-path ./target/debug/ -t coveralls -s . --token YOUR_COVERALLS_TOKEN -o coveralls.json
+        grcov . --binary-path ./target/debug/ --ignore "**/.cargo/**" --ignore "**/rustc/**" --ignore "./target/**" -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
 
     - name: Run weighted-code-coverage
       run: |
-        mkdir $HOME/wcc-output
-        weighted-code-coverage -p src/ -j coveralls.json -c cyclomatic --json $HOME/wcc-output/out.json
+        mkdir wcc-output
+        weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json ./wcc.json --html ./wcc-output/
 
-    - name: Upload weighted-code-coverage data
-      uses: actions/upload-artifact@v3
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v4.0.0
       with:
-        name: weighted-code-coverage-ubuntu
-        path: ~/wcc-output/out.json
+        enablement: true
+
+    - name: Upload Wcc html output
+      uses: actions/upload-pages-artifact@v3.0.1
+      with:
+        path: wcc-output
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4.0.4
+
+    - name: Extract metric values
+      id: metrics
+      env:
+        JSON: ./wcc.json
+      run: |
+        content=`cat ${JSON}`
+        echo "json=$content" >> $GITHUB_OUTPUT
+
+    - name: Extract branch name
+      id: extract-branch
+      if: github.event_name != 'pull_request'
+      run: echo "branch=${GITHUB_REF#refs/heads/}" >> "${GITHUB_OUTPUT}"
+
+    - name: Define badge path
+      id: badge-path
+      if: github.event_name != 'pull_request'
+      env:
+        BADGE_PATH: .github/badges/wcc.svg
+      run: echo "path=${BADGE_PATH}" >> "${GITHUB_OUTPUT}"
+      
+    - name: Create badge directory
+      if: github.event_name != 'pull_request'
+      env:
+        BADGE_PATH: ${{ steps.badge-path.outputs.path }}
+      run: mkdir -p "${BADGE_PATH%/*}" 
+
+    - name: Determine badge color
+      if: github.event_name != 'pull_request'
+      id: badge-color
+      env:
+        WCC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}
+      run: |
+        if [ $(echo "${WCC} < 60.0" | bc) -eq 1 ]; then
+          echo "color=red" >> "${GITHUB_OUTPUT}"
+        else
+          echo "color=green" >> "${GITHUB_OUTPUT}"
+        fi
+
+    - name: Create badge
+      if: github.event_name != 'pull_request'
+      uses: emibcn/badge-action@v2.0.3
+      id: badge
+      with:
+        label: wcc
+        status: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}%
+        color: ${{ steps.badge-color.outputs.color }}
+        path: ${{ steps.badge-path.outputs.path }}
+
+    - name: Verify if badge changed
+      if: github.event_name != 'pull_request'
+      uses: tj-actions/verify-changed-files@v19
+      id: badge-changed 
+      with:
+        files: ${{ steps.badge-path.outputs.path }}
+      
+    - name: Commit badge
+      if: ${{ github.event_name != 'pull_request' && steps.badge-changed.outputs.files_changed == 'true' }}
+      env:
+        BADGE: ${{ steps.badge-path.outputs.path }}
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add "${BADGE}"
+        git commit -m "Add/Update wcc badge"
+
+    - name: Push badge
+      uses: ad-m/github-push-action@master
+      if: ${{ github.event_name != 'pull_request' && success() }}
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ steps.extract-branch.outputs.branch }}
+
+    - name: Create or update comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/create-or-update-comment@v4
+      env:
+        COVERAGE: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.coverage }}
+        WCC_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}
+        WCC_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.wcc }}
+        CRAP_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.crap }}
+        CRAP_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.crap }}
+        SKUNK_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.skunk }}
+        SKUNK_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.skunk }}
+      with:
+        comment-id: ${{ github.event.comment.id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ## Weighted Code Coverage
+          Project metrics:
+          - **Coverage**: ${{ env.COVERAGE }}%
+
+          |             | Wcc                  | CRAP                | Skunk                |
+          |-------------|----------------------|---------------------|----------------------|
+          | Cyclomatic  | ${{ env.WCC_CYC }}%  | ${{ env.CRAP_CYC }} | ${{ env.SKUNK_CYC }} |
+          | Cognitive   | ${{ env.WCC_COG }}%  | ${{ env.CRAP_COG }} | ${{ env.SKUNK_COG }} |
+        edit-mode: replace
 
 ################################## DEPENDENCY LAYER ###########################
 
@@ -283,26 +404,6 @@ jobs:
         cargo +nightly udeps --all-targets
 
 ################################## UNSAFE CHECKS LEVEL #########################
-
-  valgrind:
-
-    needs: [audit, deny, udeps]
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install valgrind
-      run: |
-        sudo apt-get install valgrind
-
-    - name: Run cargo-valgrind
-      env:
-        CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER: "valgrind -s --leak-check=full --show-leak-kinds=all --error-exitcode=1"
-      # Looking for vulnerabilities
-      run: |
-        cargo test
 
   careful:
 

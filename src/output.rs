@@ -1,1228 +1,250 @@
 use std::fs;
-use std::fs::File;
-use std::path::*;
+use std::path::Path;
 
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use tera::Context;
-use tera::Tera;
-use tracing::debug;
+use minijinja::{context, Environment};
+use serde::Serialize;
 
-use crate::concurrent::files::*;
-use crate::concurrent::functions::*;
-use crate::error::*;
-use crate::Sort;
+use crate::concurrent::{files::FileMetrics, ProjectMetrics, WccOutput};
+use crate::metrics::MetricsThresholds;
+use crate::{error::*, Complexity, Mode};
 
-// Struct for JSON for files
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-struct JSONOutput {
-    project_folder: String,
-    number_of_files_ignored: usize,
-    number_of_complex_files: usize,
-    metrics: Vec<FileMetrics>,
-    files_ignored: Vec<String>,
-    complex_files: Vec<FileMetrics>,
-    project_coverage: f64,
-}
+static BASE: (&str, &str) = ("base.html", include_str!("../templates/base.html.jinja"));
 
-// Struct for JSON for functions
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-struct JSONOutputFunc {
-    project_folder: String,
-    number_of_files_ignored: usize,
-    number_of_complex_functions: usize,
-    files: Vec<RootMetrics>,
-    files_ignored: Vec<String>,
-    complex_functions: Vec<FunctionMetrics>,
-    project_coverage: f64,
+static FILES: (&str, &str) = ("files.html", include_str!("../templates/files.html.jinja"));
+
+static FILE_DETAILS: (&str, &str) = (
+    "file_details.html",
+    include_str!("../templates/file_details.html.jinja"),
+);
+
+static NAVBAR: (&str, &str) = (
+    "navbar.html",
+    include_str!("../templates/navbar.html.jinja"),
+);
+
+static STYLE: (&str, &str) = ("style.css", include_str!("../templates/css/style.css"));
+
+static COMMON_TOOLTIPS: (&str, &str) = (
+    "common_tooltips.js",
+    include_str!("../templates/js/common_tooltips.js"),
+);
+
+static BASE_TOOLTIPS: (&str, &str) = (
+    "base_tooltips.js",
+    include_str!("../templates/js/base_tooltips.js"),
+);
+
+static FILE_DETAILS_TOOLTIPS: (&str, &str) = (
+    "file_details_tooltips.js",
+    include_str!("../templates/js/file_details_tooltips.js"),
+);
+
+static COMPLEXITY: (&str, &str) = (
+    "complexity.js",
+    include_str!("../templates/js/complexity.js"),
+);
+
+const OUTPUT_HTML_INDEX: &str = "index.html";
+
+pub(crate) trait WccPrinter {
+    type Output;
+
+    fn print(self) -> Self::Output;
 }
 
 #[derive(Serialize)]
-struct HTMLTemplateFile {
-    project_folder: String,
-    number_of_files_ignored: usize,
-    number_of_complex_files: usize,
-    metrics: Vec<FileMetrics>,
-    files_ignored: Vec<String>,
-    complex_files: Vec<FileMetrics>,
-    project_coverage: f64,
-    bulma_version: String,
-    date: DateTime<Utc>,
+#[serde(rename_all = "camelCase")]
+struct JsonOutput<'a> {
+    project: &'a Path,
+    mode: Mode,
+    thresholds: MetricsThresholds,
+    files: &'a [FileMetrics],
+    project_metrics: &'a ProjectMetrics,
+    complex_files_cyclomatic: Vec<&'a str>,
+    complex_files_cognitive: Vec<&'a str>,
+    ignored_files: &'a [String],
+}
+pub(crate) struct JsonPrinter<'a> {
+    pub(crate) project_path: &'a Path,
+    pub(crate) wcc_output: &'a WccOutput,
+    pub(crate) output_path: &'a Path,
+    pub(crate) mode: Mode,
+    pub(crate) thresholds: MetricsThresholds,
 }
 
-#[derive(Serialize)]
-struct HTMLTemplateFunction {
-    project_folder: String,
-    number_of_files_ignored: usize,
-    number_of_complex_files: usize,
-    metrics: Vec<RootMetrics>,
-    files_ignored: Vec<String>,
-    complex_functions: Vec<FunctionMetrics>,
-    project_coverage: f64,
-    bulma_version: String,
-    date: DateTime<Utc>,
+impl JsonPrinter<'_> {
+    fn get_complex_files(&self, complexity: Complexity) -> Vec<&str> {
+        self.wcc_output
+            .files
+            .iter()
+            .filter(|f| match complexity {
+                Complexity::Cyclomatic => f.metrics.cyclomatic.is_complex,
+                Complexity::Cognitive => f.metrics.cyclomatic.is_complex,
+            })
+            .map(|f| f.name.as_str())
+            .collect()
+    }
+
+    fn format_output(&self) -> JsonOutput<'_> {
+        let complex_files_cyclomatic = self.get_complex_files(Complexity::Cyclomatic);
+        let complex_files_cognitive = self.get_complex_files(Complexity::Cognitive);
+
+        JsonOutput {
+            project: self.project_path,
+            mode: self.mode,
+            thresholds: self.thresholds,
+            files: &self.wcc_output.files,
+            project_metrics: &self.wcc_output.project,
+            complex_files_cyclomatic,
+            complex_files_cognitive,
+            ignored_files: &self.wcc_output.ignored_files,
+        }
+    }
 }
 
-trait PrintResult<T> {
-    fn print_result(result: &T, files_ignored: usize, complex_files: usize);
-    fn print_json_to_file(
-        result: &T,
-        files_ignored: &[String],
-        project_coverage: f64,
-        json_path: &Path,
-        project_folder: &Path,
-        sort_by: Sort,
-    ) -> Result<()>;
-    fn print_csv_to_file(
-        result: &T,
-        files_ignored: &[String],
-        project_coverage: f64,
-        csv_path: &Path,
-        sort_by: Sort,
-    ) -> Result<()>;
-    fn print_html_to_file(
-        result: &T,
-        files_ignored: &[String],
-        html: &Path,
-        project_folder: &Path,
-        project_coverage: f64,
-        sort_by: Sort,
-    ) -> Result<()>;
-}
-struct Text;
+impl WccPrinter for JsonPrinter<'_> {
+    type Output = Result<()>;
 
-impl PrintResult<Vec<FileMetrics>> for Text {
-    fn print_result(result: &Vec<FileMetrics>, files_ignored: usize, complex_files: usize) {
-        println!(
-            "{0: <20} | {1: <20} | {2: <20} | {3: <20} | {4: <20} | {5: <20} | {6: <30}",
-            "FILE", "WCC PLAIN", "WCC QUANTIZED", "CRAP", "SKUNKSCORE", "IS_COMPLEX", "PATH"
-        );
-        result.iter().for_each(|m| {
-            println!(
-                "{0: <20} | {1: <20.3} | {2: <20.3} | {3: <20.3} | {4: <20.3} | {5: <20} | {6: <30}",
-                m.file,
-                m.metrics.wcc_plain,
-                m.metrics.wcc_quantized,
-                m.metrics.crap,
-                m.metrics.skunk,
-                m.metrics.is_complex,
-                m.file_path
-            );
-        });
-        println!("FILES IGNORED: {files_ignored}");
-        println!("COMPLEX FILES: {complex_files}");
-    }
-    fn print_csv_to_file(
-        result: &Vec<FileMetrics>,
-        files_ignored: &[String],
-        project_coverage: f64,
-        csv_path: &Path,
-        sort_by: Sort,
-    ) -> Result<()> {
-        let mut complex_files = result
-            .iter()
-            .filter(|m| m.metrics.is_complex)
-            .cloned()
-            .collect::<Vec<FileMetrics>>();
-        complex_files.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let mut writer = csv::Writer::from_path(csv_path)?;
-        writer.write_record([
-            "FILE",
-            "WCC PLAIN",
-            "WCC QUANTIZED",
-            "CRAP",
-            "SKUNK",
-            "IGNORED",
-            "IS COMPLEX",
-            "FILE PATH",
-        ])?;
-        result.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record([
-                &m.file,
-                &format!("{:.3}", m.metrics.wcc_plain),
-                &format!("{:.3}", m.metrics.wcc_quantized),
-                &format!("{:.3}", m.metrics.crap),
-                &format!("{:.3}", m.metrics.skunk),
-                &format!("{}", false),
-                &format!("{}", m.metrics.is_complex),
-                &m.file_path,
-            ])?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "PROJECT_COVERAGE",
-            format!("{project_coverage:.3}").as_str(),
-            "-",
-            "-",
-            "-",
-            "-",
-            "-",
-            "-",
-        ])?;
-        writer.write_record([
-            "LIST OF COMPLEX FILES",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-        ])?;
-        complex_files.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record([
-                &m.file,
-                &format!("{:.3}", m.metrics.wcc_plain),
-                &format!("{:.3}", m.metrics.wcc_quantized),
-                &format!("{:.3}", m.metrics.crap),
-                &format!("{:.3}", m.metrics.skunk),
-                &format!("{}", false),
-                &format!("{}", m.metrics.is_complex),
-                &m.file_path,
-            ])?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "TOTAL COMPLEX FILES",
-            format!("{:?}", complex_files.len()).as_str(),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-        ])?;
-        writer.write_record([
-            "LIST OF IGNORED FILES",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-        ])?;
-        files_ignored.iter().try_for_each(|file| -> Result<()> {
-            writer.write_record([
-                file.as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{}", true).as_str(),
-                "-",
-                "-",
-            ])?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "TOTAL FILES IGNORED",
-            format!("{:?}", files_ignored.len()).as_str(),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-        ])?;
-        writer.flush()?;
-        Ok(())
-    }
-    fn print_json_to_file(
-        result: &Vec<FileMetrics>,
-        files_ignored: &[String],
-        project_coverage: f64,
-        json_path: &Path,
-        project_folder: &Path,
-        sort_by: Sort,
-    ) -> Result<()> {
-        let mut complex_files = result
-            .iter()
-            .filter(|m| m.metrics.is_complex)
-            .cloned()
-            .collect::<Vec<FileMetrics>>();
-        complex_files.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let json = export_to_json(
-            project_folder,
-            result,
-            files_ignored,
-            &complex_files,
-            project_coverage,
-        );
-        serde_json::to_writer(&File::create(json_path)?, &json)?;
-        Ok(())
-    }
-    fn print_html_to_file(
-        result: &Vec<FileMetrics>,
-        files_ignored: &[String],
-        html: &Path,
-        project_folder: &Path,
-        project_coverage: f64,
-        sort_by: Sort,
-    ) -> Result<()> {
-        let tera = match Tera::new("src/templates/*.html") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {e}");
-                ::std::process::exit(1);
-            }
-        };
-        let mut complex_files = result
-            .iter()
-            .filter(|m| m.metrics.is_complex)
-            .cloned()
-            .collect::<Vec<FileMetrics>>();
-        complex_files.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let template = HTMLTemplateFile {
-            project_folder: project_folder.display().to_string(),
-            number_of_files_ignored: files_ignored.len(),
-            number_of_complex_files: complex_files.len(),
-            metrics: result.to_vec(),
-            files_ignored: files_ignored.to_vec(),
-            complex_files,
-            project_coverage,
-            bulma_version: "0.9.1".to_string(),
-            date: Utc::now(),
-        };
-        let output = tera.render("files.html", &Context::from_serialize(template)?)?;
-        //let mut file = File::create("./output/index.html")?;
-        fs::write(html, output)?;
+    fn print(self) -> Self::Output {
+        let output = self.format_output();
+        let json = serde_json::to_string(&output)?;
+        fs::write(self.output_path, json.as_bytes())?;
+
         Ok(())
     }
 }
-impl PrintResult<Vec<RootMetrics>> for Text {
-    fn print_result(result: &Vec<RootMetrics>, files_ignored: usize, complex_files: usize) {
-        println!(
-            "{0: <20} | {1: <20} | {2: <20} | {3: <20} | {4: <20} | {5: <20} | {6: <30}",
-            "FUNCTION", "WCC PLAIN", "WCC QUANTIZED", "CRAP", "SKUNKSCORE", "IS_COMPLEX", "PATH"
-        );
-        result.iter().for_each(|m| {
-            println!(
-                "{0: <20} | {1: <20.3} | {2: <20.3} | {3: <20.3} | {4: <20.3} | {5: <20} | {6: <30}",
-                m.file_name,
-                m.metrics.wcc_plain,
-                m.metrics.wcc_quantized,
-                m.metrics.crap,
-                m.metrics.skunk,
-                m.metrics.is_complex,
-                m.file_path
-            );
-            m.functions.iter().for_each(|f|{
-                println!(
-                    "{0: <20} | {1: <20.3} | {2: <20.3} | {3: <20.3} | {4: <20.3} | {5: <20} | {6: <30}",
-                    f.function_name,
-                    f.metrics.wcc_plain,
-                    f.metrics.wcc_quantized,
-                    f.metrics.crap,
-                    f.metrics.skunk,
-                    f.metrics.is_complex,
-                    f.function_path
-                );
+
+#[derive(Default)]
+struct ComplexSpaces {
+    complex_cyclomatic: usize,
+    not_complex_cyclomatic: usize,
+    complex_cognitive: usize,
+    not_complex_cognitive: usize,
+}
+
+pub(crate) struct HtmlPrinter<'a> {
+    pub(crate) wcc_output: &'a WccOutput,
+    pub(crate) output_path: &'a Path,
+    pub(crate) mode: Mode,
+    pub(crate) thresholds: MetricsThresholds,
+}
+
+impl HtmlPrinter<'_> {
+    fn format_files(&self) -> Vec<(Option<String>, &FileMetrics)> {
+        self.wcc_output
+            .files
+            .iter()
+            .enumerate()
+            .map(|(file_number, file)| {
+                file.functions
+                    .as_ref()
+                    .map(|_| (Some(format!("file_{}.html", file_number + 1)), file))
+                    .unwrap_or((None, file))
+            })
+            .collect()
+    }
+
+    fn get_complex_files(&self) -> ComplexSpaces {
+        let mut complex_spaces = ComplexSpaces::default();
+        self.wcc_output.files.iter().for_each(|f| {
+            if f.metrics.cyclomatic.is_complex {
+                complex_spaces.complex_cyclomatic += 1;
+            };
+            if f.metrics.cognitive.is_complex {
+                complex_spaces.complex_cognitive += 1;
+            };
+        });
+        complex_spaces.not_complex_cyclomatic =
+            self.wcc_output.files.len() - complex_spaces.complex_cyclomatic;
+        complex_spaces.not_complex_cognitive =
+            self.wcc_output.files.len() - complex_spaces.complex_cognitive;
+
+        complex_spaces
+    }
+
+    fn get_complex_functions(&self, file: &FileMetrics) -> ComplexSpaces {
+        let mut complex_spaces = ComplexSpaces::default();
+        if let Some(functions) = &file.functions {
+            functions.iter().for_each(|f| {
+                if f.metrics.cyclomatic.is_complex {
+                    complex_spaces.complex_cyclomatic += 1;
+                };
+                if f.metrics.cognitive.is_complex {
+                    complex_spaces.complex_cognitive += 1;
+                };
             });
-        });
-        println!("FILES IGNORED: {files_ignored}");
-        println!("COMPLEX FUNCTIONS: {complex_files}");
+            complex_spaces.not_complex_cyclomatic =
+                functions.len() - complex_spaces.complex_cyclomatic;
+            complex_spaces.not_complex_cognitive =
+                functions.len() - complex_spaces.complex_cognitive;
+        }
+
+        complex_spaces
     }
-    fn print_json_to_file(
-        result: &Vec<RootMetrics>,
-        files_ignored: &[String],
-        project_coverage: f64,
-        json_path: &Path,
-        project_folder: &Path,
-        sort_by: Sort,
+
+    fn print_file_details(
+        &self,
+        env: &mut Environment,
+        files: &[(Option<String>, &FileMetrics)],
     ) -> Result<()> {
-        let mut complex_functions: Vec<FunctionMetrics> = result
-            .iter()
-            .flat_map(|m| m.functions.clone())
-            .filter(|m| m.metrics.is_complex)
-            .collect::<Vec<FunctionMetrics>>();
-        complex_functions.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let json = export_to_json_function(
-            project_folder,
-            result,
-            files_ignored,
-            &complex_functions,
-            project_coverage,
-        );
-        serde_json::to_writer(&File::create(json_path)?, &json)?;
-        Ok(())
-    }
-    fn print_csv_to_file(
-        result: &Vec<RootMetrics>,
-        files_ignored: &[String],
-        project_coverage: f64,
-        csv_path: &Path,
-        sort_by: Sort,
-    ) -> Result<()> {
-        let mut complex_functions: Vec<FunctionMetrics> = result
-            .iter()
-            .flat_map(|m| m.functions.clone())
-            .filter(|m| m.metrics.is_complex)
-            .collect::<Vec<FunctionMetrics>>();
-        complex_functions.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let mut writer = csv::Writer::from_path(csv_path)?;
-        writer.write_record([
-            "FUNCTION",
-            "WCC PLAIN",
-            "WCC QUANTIZED",
-            "CRAP",
-            "SKUNK",
-            "IGNORED",
-            "IS COMPLEX",
-            "FUNCTION PATH",
-        ])?;
-        result.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record([
-                &m.file_name,
-                &format!("{:.3}", m.metrics.wcc_plain),
-                &format!("{:.3}", m.metrics.wcc_quantized),
-                &format!("{:.3}", m.metrics.crap),
-                &format!("{:.3}", m.metrics.skunk),
-                &format!("{}", false),
-                &format!("{}", m.metrics.is_complex),
-                &m.file_path,
-            ])?;
-            m.functions.iter().try_for_each(|m| -> Result<()> {
-                writer.write_record([
-                    &m.function_name,
-                    &format!("{:.3}", m.metrics.wcc_plain),
-                    &format!("{:.3}", m.metrics.wcc_quantized),
-                    &format!("{:.3}", m.metrics.crap),
-                    &format!("{:.3}", m.metrics.skunk),
-                    &format!("{}", false),
-                    &format!("{}", m.metrics.is_complex),
-                    &m.function_path,
-                ])?;
-                Ok(())
-            })?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "PROJECT_COVERAGE",
-            format!("{project_coverage:.3}").as_str(),
-            "-",
-            "-",
-            "-",
-            "-",
-            "-",
-            "-",
-        ])?;
-        writer.write_record([
-            "LIST OF COMPLEX FUNCTIONS",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-        ])?;
-        complex_functions.iter().try_for_each(|m| -> Result<()> {
-            writer.write_record([
-                &m.function_name,
-                &format!("{:.3}", m.metrics.wcc_plain),
-                &format!("{:.3}", m.metrics.wcc_quantized),
-                &format!("{:.3}", m.metrics.crap),
-                &format!("{:.3}", m.metrics.skunk),
-                &format!("{}", false),
-                &format!("{}", m.metrics.is_complex),
-                &m.function_path,
-            ])?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "TOTAL COMPLEX FUNCTIONS",
-            format!("{:?}", complex_functions.len()).as_str(),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-        ])?;
-        writer.write_record([
-            "LIST OF IGNORED FILES",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-            "----------",
-        ])?;
-        files_ignored.iter().try_for_each(|file| -> Result<()> {
-            writer.write_record([
-                file.as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{:.3}", 0.).as_str(),
-                format!("{}", true).as_str(),
-                "-",
-                "-",
-            ])?;
-            Ok(())
-        })?;
-        writer.write_record([
-            "TOTAL FILES IGNORED",
-            format!("{:?}", files_ignored.len()).as_str(),
-            "",
-            "",
-            "",
-            "",
-            "",
-            "",
-        ])?;
-        writer.flush()?;
-        Ok(())
-    }
-    fn print_html_to_file(
-        result: &Vec<RootMetrics>,
-        files_ignored: &[String],
-        html: &Path,
-        project_folder: &Path,
-        project_coverage: f64,
-        sort_by: Sort,
-    ) -> Result<()> {
-        let tera = match Tera::new("src/templates/*.html") {
-            Ok(t) => t,
-            Err(e) => {
-                println!("Parsing error(s): {e}");
-                ::std::process::exit(1);
+        env.add_template(FILE_DETAILS.0, FILE_DETAILS.1)?;
+        let file_template = env.get_template(FILE_DETAILS.0)?;
+        for f in files {
+            if let Some(html) = &f.0 {
+                let complex_functions = self.get_complex_functions(f.1);
+                let file_output = file_template.render(context! {
+                    file => f.1,
+                    not_complex_cyclomatic => complex_functions.not_complex_cyclomatic,
+                    complex_cyclomatic => complex_functions.complex_cyclomatic,
+                    not_complex_cognitive => complex_functions.not_complex_cognitive,
+                    complex_cognitive => complex_functions.complex_cognitive,
+                    mode => "Functions",
+                    thresholds => self.thresholds,
+                    navbar_brand_href => "index.html",
+                })?;
+                std::fs::write(self.output_path.join(html), file_output)?;
             }
-        };
-        let mut complex_functions: Vec<FunctionMetrics> = result
-            .iter()
-            .flat_map(|m| m.functions.clone())
-            .filter(|m| m.metrics.is_complex)
-            .collect::<Vec<FunctionMetrics>>();
-        complex_functions.sort_by(|a, b| match sort_by {
-            Sort::WccPlain => b.metrics.wcc_plain.total_cmp(&a.metrics.wcc_plain),
-            Sort::WccQuantized => b.metrics.wcc_quantized.total_cmp(&a.metrics.wcc_quantized),
-            Sort::Crap => b.metrics.crap.total_cmp(&a.metrics.crap),
-            Sort::Skunk => b.metrics.skunk.total_cmp(&a.metrics.skunk),
-        });
-        let template = HTMLTemplateFunction {
-            project_folder: project_folder.display().to_string(),
-            number_of_files_ignored: files_ignored.len(),
-            number_of_complex_files: complex_functions.len(),
-            metrics: result.to_vec(),
-            files_ignored: files_ignored.to_vec(),
-            complex_functions,
-            project_coverage,
-            bulma_version: "0.9.1".to_string(),
-            date: Utc::now(),
-        };
-        let output = tera.render("functions.html", &Context::from_serialize(template)?)?;
-        //let mut file = File::create("./output/index.html")?;
-        fs::write(html, output)?;
+        }
+
         Ok(())
     }
 }
 
-// Export all metrics to a json file
-fn export_to_json(
-    project_folder: &Path,
-    metrics: &[FileMetrics],
-    files_ignored: &[String],
-    complex_files: &Vec<FileMetrics>,
-    project_coverage: f64,
-) -> JSONOutput {
-    let number_of_files_ignored = files_ignored.len();
-    let number_of_complex_files = complex_files.len();
+impl WccPrinter for HtmlPrinter<'_> {
+    type Output = Result<()>;
 
-    JSONOutput {
-        project_folder: project_folder.display().to_string(),
-        number_of_files_ignored,
-        number_of_complex_files,
-        metrics: metrics.to_vec(),
-        files_ignored: files_ignored.to_vec(),
-        complex_files: complex_files.to_vec(),
-        project_coverage,
-    }
-}
+    fn print(self) -> Self::Output {
+        let mut env = Environment::new();
+        env.add_template(BASE.0, BASE.1)?;
+        env.add_template(NAVBAR.0, NAVBAR.1)?;
+        env.add_template(STYLE.0, STYLE.1)?;
+        env.add_template(COMMON_TOOLTIPS.0, COMMON_TOOLTIPS.1)?;
+        env.add_template(BASE_TOOLTIPS.0, BASE_TOOLTIPS.1)?;
+        env.add_template(FILE_DETAILS_TOOLTIPS.0, FILE_DETAILS_TOOLTIPS.1)?;
+        env.add_template(COMPLEXITY.0, COMPLEXITY.1)?;
+        let files = self.format_files();
+        if let Mode::Functions = self.mode {
+            self.print_file_details(&mut env, &files)?;
+        }
 
-// Export all metrics to a json file for functions mode
-fn export_to_json_function(
-    project_folder: &Path,
-    metrics: &[RootMetrics],
-    files_ignored: &[String],
-    complex_functions: &Vec<FunctionMetrics>,
-    project_coverage: f64,
-) -> JSONOutputFunc {
-    let number_of_files_ignored = files_ignored.len();
-    let number_of_complex_functions = complex_functions.len();
-    JSONOutputFunc {
-        project_folder: project_folder.display().to_string(),
-        number_of_files_ignored,
-        number_of_complex_functions,
-        files: metrics.to_vec(),
-        files_ignored: files_ignored.to_vec(),
-        complex_functions: complex_functions.to_vec(),
-        project_coverage,
-    }
-}
+        env.add_template(FILES.0, FILES.1)?;
+        let template = env.get_template(FILES.0)?;
+        let complex_files = self.get_complex_files();
+        let output = template.render(context! {
+            files => files,
+            ignored_files => self.wcc_output.ignored_files,
+            ignored_files_num => self.wcc_output.ignored_files.len(),
+            not_complex_cyclomatic => complex_files.not_complex_cyclomatic,
+            complex_cyclomatic => complex_files.complex_cyclomatic,
+            not_complex_cognitive => complex_files.not_complex_cognitive,
+            complex_cognitive => complex_files.complex_cognitive,
+            project => self.wcc_output.project,
+            mode => self.mode,
+            thresholds => self.thresholds,
+        })?;
 
-// This Function get the folder of the repo to analyzed and the path to the json obtained using grcov
-// It prints all the WCC, CRAP and SkunkScore values for all the files in the folders
-// the output will be print as follows:
-// FILE       | WCC PLAIN | WCC QUANTIZED | CRAP       | SKUNKSCORE | "IS_COMPLEX" | "PATH"
-// if the a file is not found in the json that files will be skipped
+        std::fs::write(self.output_path.join(OUTPUT_HTML_INDEX), output)?;
 
-pub(crate) fn get_metrics_output(
-    metrics: &Vec<FileMetrics>,
-    files_ignored: &Vec<String>,
-    complex_files: &Vec<FileMetrics>,
-) {
-    Text::print_result(metrics, files_ignored.len(), complex_files.len());
-}
-
-// Prints the the given  metrics ,files ignored and complex files  in a csv format
-// The structure is the following :
-// "FILE","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
-pub(crate) fn print_metrics_to_csv<A: AsRef<Path>>(
-    metrics: &Vec<FileMetrics>,
-    files_ignored: &[String],
-    csv_path: A,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to csv...");
-    Text::print_csv_to_file(
-        metrics,
-        files_ignored,
-        project_coverage,
-        csv_path.as_ref(),
-        sort_by,
-    )
-}
-
-// Prints the the given  metrics ,files ignored and complex files  in a json format
-pub(crate) fn print_metrics_to_json<A: AsRef<Path>, B: AsRef<Path>>(
-    metrics: &Vec<FileMetrics>,
-    files_ignored: &[String],
-    json_output: A,
-    project_folder: B,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to json...");
-    Text::print_json_to_file(
-        metrics,
-        files_ignored,
-        project_coverage,
-        json_output.as_ref(),
-        project_folder.as_ref(),
-        sort_by,
-    )
-}
-
-// Prints the the given  metrics ,files ignored and complex files  in a json format
-pub(crate) fn print_metrics_to_html<A: AsRef<Path>, B: AsRef<Path>>(
-    metrics: &Vec<FileMetrics>,
-    files_ignored: &[String],
-    html: A,
-    project_folder: B,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to HTML...");
-    Text::print_html_to_file(
-        metrics,
-        files_ignored,
-        html.as_ref(),
-        project_folder.as_ref(),
-        project_coverage,
-        sort_by,
-    )
-}
-
-pub(crate) fn get_metrics_output_function(
-    metrics: &Vec<RootMetrics>,
-    files_ignored: &[String],
-    complex_files: &Vec<FunctionMetrics>,
-) {
-    Text::print_result(metrics, files_ignored.len(), complex_files.len());
-}
-
-// Prints the the given  metrics per function ,files ignored and complex function  in a csv format
-// The structure is the following :
-// "FUNCTION","WCC PLAIN","WCC QUANTIZED","CRAP","SKUNK","IGNORED","IS COMPLEX","FILE PATH",
-pub(crate) fn print_metrics_to_csv_function<A: AsRef<Path>>(
-    metrics: &Vec<RootMetrics>,
-    files_ignored: &[String],
-    csv_path: A,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to csv...");
-    Text::print_csv_to_file(
-        metrics,
-        files_ignored,
-        project_coverage,
-        csv_path.as_ref(),
-        sort_by,
-    )
-}
-
-// Prints the the given  metrics per function,files ignored and complex functions  in a json format
-pub(crate) fn print_metrics_to_json_function<A: AsRef<Path>, B: AsRef<Path>>(
-    metrics: &Vec<RootMetrics>,
-    files_ignored: &[String],
-    json_output: A,
-    project_folder: B,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to json...");
-    Text::print_json_to_file(
-        metrics,
-        files_ignored,
-        project_coverage,
-        json_output.as_ref(),
-        project_folder.as_ref(),
-        sort_by,
-    )
-}
-
-// Prints the the given  metrics per function, files ignored and complex functions  in a json format
-pub(crate) fn print_metrics_to_html_function<A: AsRef<Path>, B: AsRef<Path>>(
-    metrics: &Vec<RootMetrics>,
-    files_ignored: &[String],
-    html: A,
-    project_folder: B,
-    project_coverage: f64,
-    sort_by: Sort,
-) -> Result<()> {
-    debug!("Exporting to HTML...");
-    Text::print_html_to_file(
-        metrics,
-        files_ignored,
-        html.as_ref(),
-        project_folder.as_ref(),
-        project_coverage,
-        sort_by,
-    )
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use crate::concurrent::Metrics;
-    use crate::Complexity;
-    use crate::JsonFormat;
-    use crate::Mode;
-    use crate::OutputFormat;
-    use crate::Thresholds;
-    use crate::WccRunner;
-    use std::fs;
-
-    const JSON: &str = "./data/seahorse/seahorse.json";
-
-    #[test]
-    fn test_file_csv() {
-        let json = PathBuf::from(JSON);
-
-        WccRunner::new()
-            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
-            .n_threads(7)
-            .json_format(JsonFormat::Coveralls(json))
-            .mode(Mode::Files)
-            .sort_by(Sort::WccPlain)
-            .output_format(OutputFormat::Csv)
-            .output_path("./data/test_project/to_compare.csv")
-            .run("./data/test_project/")
-            .unwrap();
-
-        let to_compare = fs::read_to_string("./data/test_project/to_compare.csv").unwrap();
-        let expected = fs::read_to_string("./data/test_project/test.csv")
-            .unwrap()
-            .replace('\r', "");
-        assert!(to_compare == expected);
-        fs::remove_file("./data/test_project/to_compare.csv").unwrap();
-    }
-
-    #[test]
-    fn test_file_json() {
-        let json = PathBuf::from(JSON);
-
-        WccRunner::new()
-            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
-            .n_threads(7)
-            .json_format(JsonFormat::Coveralls(json))
-            .mode(Mode::Files)
-            .sort_by(Sort::WccPlain)
-            .output_format(OutputFormat::Json)
-            .output_path("./data/test_project/to_compare.json")
-            .run("./data/test_project/")
-            .unwrap();
-
-        let json_string = fs::read_to_string("./data/test_project/to_compare.json").unwrap();
-        let to_compare: JSONOutput = serde_json::from_str(&json_string).unwrap();
-        let expected = JSONOutput {
-            project_folder: "./data/test_project/".into(),
-            number_of_files_ignored: 0,
-            number_of_complex_files: 1,
-            metrics: vec![
-                FileMetrics {
-                    metrics: Metrics {
-                        wcc_plain: 34.696335078534034,
-                        wcc_quantized: 0.7382198952879581,
-                        crap: 48.32881221072737,
-                        skunk: 15.87012987012987,
-                        is_complex: true,
-                        coverage: 91.56,
-                    },
-                    file: "flag.rs".into(),
-                    file_path: "src/flag.rs".into(),
-                },
-                FileMetrics {
-                    metrics: Metrics {
-                        wcc_plain: 34.696335078534034,
-                        wcc_quantized: 0.7382198952879581,
-                        crap: 48.32881221072737,
-                        skunk: 15.87012987012987,
-                        is_complex: false,
-                        coverage: 91.55844155844156,
-                    },
-                    file: "PROJECT".into(),
-                    file_path: "-".into(),
-                },
-                FileMetrics {
-                    metrics: Metrics {
-                        wcc_plain: 34.696335078534034,
-                        wcc_quantized: 0.7382198952879581,
-                        crap: 48.32881221072737,
-                        skunk: 15.87012987012987,
-                        is_complex: false,
-                        coverage: 91.56,
-                    },
-                    file: "AVG".into(),
-                    file_path: "-".into(),
-                },
-                FileMetrics {
-                    metrics: Metrics {
-                        wcc_plain: 34.696335078534034,
-                        wcc_quantized: 0.7382198952879581,
-                        crap: 48.32881221072737,
-                        skunk: 15.87012987012987,
-                        is_complex: false,
-                        coverage: 0.0,
-                    },
-                    file: "MAX".into(),
-                    file_path: "-".into(),
-                },
-                FileMetrics {
-                    metrics: Metrics {
-                        wcc_plain: 34.696335078534034,
-                        wcc_quantized: 0.7382198952879581,
-                        crap: 48.32881221072737,
-                        skunk: 15.87012987012987,
-                        is_complex: false,
-                        coverage: 100.0,
-                    },
-                    file: "MIN".into(),
-                    file_path: "-".into(),
-                },
-            ],
-            files_ignored: Vec::<String>::new(),
-            complex_files: vec![FileMetrics {
-                metrics: Metrics {
-                    wcc_plain: 34.696335078534034,
-                    wcc_quantized: 0.7382198952879581,
-                    crap: 48.32881221072737,
-                    skunk: 15.87012987012987,
-                    is_complex: true,
-                    coverage: 91.56,
-                },
-                file: "flag.rs".into(),
-                file_path: "src/flag.rs".into(),
-            }],
-            project_coverage: 91.56,
-        };
-
-        assert!(to_compare == expected);
-        fs::remove_file("./data/test_project/to_compare.json").unwrap();
-    }
-
-    #[test]
-    fn test_functions_csv() {
-        let json = PathBuf::from(JSON);
-
-        WccRunner::new()
-            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
-            .n_threads(7)
-            .json_format(JsonFormat::Coveralls(json))
-            .mode(Mode::Functions)
-            .sort_by(Sort::WccPlain)
-            .output_format(OutputFormat::Csv)
-            .output_path("./data/test_project/to_compare_fun.csv")
-            .run("./data/test_project/")
-            .unwrap();
-
-        let to_compare = fs::read_to_string("./data/test_project/to_compare_fun.csv").unwrap();
-        let expected = fs::read_to_string("./data/test_project/test_fun.csv")
-            .unwrap()
-            .replace('\r', "");
-        assert!(to_compare == expected);
-        fs::remove_file("./data/test_project/to_compare_fun.csv").unwrap();
-    }
-
-    #[test]
-    fn test_functions_json() {
-        let json = PathBuf::from(JSON);
-
-        WccRunner::new()
-            .complexity((Complexity::Cyclomatic, Thresholds(vec![30., 1.5, 35., 30.])))
-            .n_threads(7)
-            .json_format(JsonFormat::Coveralls(json))
-            .mode(Mode::Functions)
-            .sort_by(Sort::WccPlain)
-            .output_format(OutputFormat::Json)
-            .output_path("./data/test_project/to_compare_fun.json")
-            .run("./data/test_project/")
-            .unwrap();
-
-        let json_string = fs::read_to_string("./data/test_project/to_compare_fun.json").unwrap();
-        let to_compare: JSONOutputFunc = serde_json::from_str(&json_string).unwrap();
-        let expected= JSONOutputFunc {
-                project_folder: "./data/test_project/".into(),
-                number_of_files_ignored: 0,
-                number_of_complex_functions: 0,
-                files: vec![
-                    RootMetrics {
-                        metrics: Metrics {
-                            wcc_plain: 34.696335078534034,
-                            wcc_quantized: 0.7382198952879581,
-                            crap: 48.32881221072737,
-                            skunk: 15.87012987012987,
-                            is_complex: true,
-                            coverage: 91.56
-                        },
-                        file_name: "flag.rs".into(),
-                        file_path: "src/flag.rs".into(),
-                        start_line: 1,
-                        end_line: 261,
-                        functions: vec![
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 0.7619047619047619,
-                                    wcc_quantized: 0.7619047619047619,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "opiton_index (155, 175)".into(),
-                                function_path: "/opiton_index (155,175)".into(),
-                                start_line: 155,
-                                end_line: 175
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics{
-                                    wcc_plain: 1.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "construct_fail_1 (179, 181)".into(),
-                                function_path: "/construct_fail_1 (179,181)".into(),
-                                start_line: 179,
-                                end_line: 181
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics{
-                                    wcc_plain: 1.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "construct_fail_2 (185, 187)".into(),
-                                function_path: "/construct_fail_2 (185,187)".into(),
-                                start_line: 185,
-                                end_line: 187
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 1.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "construct_fail_3 (191, 193)".into(),
-                                function_path: "/construct_fail_3 (191,193)".into(),
-                                start_line: 191,
-                                end_line: 193
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 2.769230769230769,
-                                    wcc_quantized: 0.9230769230769232,
-                                    crap: 3.0040964952207556,
-                                    skunk: 0.9230769230769232,
-                                    is_complex: false,
-                                    coverage: 92.31
-                                },
-                                function_name: "bool_flag_test (196, 209)".into(),
-                                function_path: "/bool_flag_test (196,209)".into(),
-                                start_line: 196,
-                                end_line: 209
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics{
-                                    wcc_plain: 2.7857142857142856,
-                                    wcc_quantized: 0.9285714285714286,
-                                    crap: 3.003279883381924,
-                                    skunk: 0.8571428571428567,
-                                    is_complex: false,
-                                    coverage: 92.86
-                                },
-                                function_name: "string_flag_test (212, 226)".into(),
-                                function_path: "/string_flag_test (212,226)".into(),
-                                start_line: 212,
-                                end_line: 226
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 2.7857142857142856,
-                                    wcc_quantized: 0.9285714285714286,
-                                    crap: 3.003279883381924,
-                                    skunk: 0.8571428571428567,
-                                    is_complex: false,
-                                    coverage: 92.86
-                                },
-                                function_name: "int_flag_test (229, 243)".into(),
-                                function_path: "/int_flag_test (229,243)".into(),
-                                start_line: 229,
-                                end_line: 243
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 2.7857142857142856,
-                                    wcc_quantized: 0.9285714285714286,
-                                    crap: 3.003279883381924,
-                                    skunk: 0.8571428571428567,
-                                    is_complex: false,
-                                    coverage: 92.86
-                                },
-                                function_name: "float_flag_test (246, 260)".into(),
-                                function_path: "/float_flag_test (246,260)".into(),
-                                start_line: 246,
-                                end_line: 260
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 4.666666666666667,
-                                    wcc_quantized: 1.1666666666666667,
-                                    crap: 4.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "new (47, 74)".into(),
-                                function_path: "/Flag (36,148)/new (47,74)".into(),
-                                start_line: 47,
-                                end_line: 74
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 0.0,
-                                    wcc_quantized: 0.0,
-                                    crap: 2.0,
-                                    skunk: 4.0,
-                                    is_complex: false,
-                                    coverage: 0.0
-                                },
-                                function_name: "description (86, 89)".into(),
-                                function_path: "/Flag (36,148)/description (86,89)".into(),
-                                start_line: 86,
-                                end_line: 89
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 1.5,
-                                    wcc_quantized: 0.75,
-                                    crap: 2.011661807580175,
-                                    skunk: 1.1428571428571437,
-                                    is_complex: false,
-                                    coverage: 85.71
-                                },
-                                function_name: "alias (105, 112)".into(),
-                                function_path: "/Flag (36,148)/alias (105,112)".into(),
-                                start_line: 105,
-                                end_line: 112
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 6.125,
-                                    wcc_quantized: 0.875,
-                                    crap: 7.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "option_index (115, 122)".into(),
-                                function_path: "/Flag (36,148)/option_index (115,122)".into(),
-                                start_line: 115,
-                                end_line: 122
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics{
-                                    wcc_plain: 8.478260869565217,
-                                    wcc_quantized: 0.5652173913043478,
-                                    crap: 17.93099938937513,
-                                    skunk: 14.11764705882353,
-                                    is_complex: false,
-                                    coverage: 76.47
-                                },
-                                function_name: "value (125, 147)".into(),
-                                function_path: "/Flag (36,148)/value (125,147)".into(),
-                                start_line: 125,
-                                end_line: 147
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics{
-                                    wcc_plain: 3.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 3.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "<anonymous> (117, 119)".into(),
-                                function_path: "/Flag (36,148)/option_index (115,122)/<anonymous> (117,119)".into(),
-                                start_line: 117,
-                                end_line: 119
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 1.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "<anonymous> (120, 120)".into(),
-                                function_path: "/Flag (36,148)/option_index (115,122)/<anonymous> (120,120)".into(),
-                                start_line: 120,
-                                end_line: 120
-                            },
-                            FunctionMetrics {
-                                metrics: Metrics {
-                                    wcc_plain: 1.0,
-                                    wcc_quantized: 1.0,
-                                    crap: 1.0,
-                                    skunk: 0.0,
-                                    is_complex: false,
-                                    coverage: 100.0
-                                },
-                                function_name: "<anonymous> (118, 118)".into(),
-                                function_path: "/Flag (36,148)/option_index (115,122)/<anonymous> (117,119)/<anonymous> (118,118)".into(),
-                                start_line: 118,
-                                end_line: 118
-                            }
-                        ]
-                    },
-                    RootMetrics {
-                        metrics: Metrics {
-                            wcc_plain: 34.696335078534034,
-                            wcc_quantized: 0.7382198952879581,
-                            crap: 48.32881221072737,
-                            skunk: 15.87012987012987,
-                            is_complex: false,
-                            coverage: 91.55844155844156
-                        },
-                        file_name: "PROJECT".into(),
-                        file_path: "-".into(),
-                        start_line: 0,
-                        end_line: 0,
-                        functions: Vec::<FunctionMetrics>::new()
-                    },
-                    RootMetrics {
-                        metrics: Metrics {
-                            wcc_plain: 34.696335078534034,
-                            wcc_quantized: 0.7382198952879581,
-                            crap: 48.32881221072737,
-                            skunk: 15.87012987012987,
-                            is_complex: false,
-                            coverage: 91.56
-                        },
-                        file_name: "AVG".into(),
-                        file_path: "-".into(),
-                        start_line: 0,
-                        end_line: 0,
-                        functions: Vec::<FunctionMetrics>::new()
-                    },
-                    RootMetrics {
-                        metrics: Metrics {
-                            wcc_plain: 34.696335078534034,
-                            wcc_quantized: 0.7382198952879581,
-                            crap: 48.32881221072737,
-                            skunk: 15.87012987012987,
-                            is_complex: false,
-                            coverage: 0.0
-                        },
-                        file_name: "MAX".into(),
-                        file_path: "-".into(),
-                        start_line: 0,
-                        end_line: 0,
-                        functions: Vec::<FunctionMetrics>::new()
-                    },
-                    RootMetrics {
-                        metrics: Metrics {
-                            wcc_plain: 34.696335078534034,
-                            wcc_quantized: 0.7382198952879581,
-                            crap: 48.32881221072737,
-                            skunk: 15.87012987012987,
-                            is_complex: false,
-                            coverage: 100.0
-                        },
-                        file_name: "MIN".into(),
-                        file_path: "-".into(),
-                        start_line: 0,
-                        end_line: 0,
-                        functions: Vec::<FunctionMetrics>::new()
-                    }
-                ],
-                files_ignored: Vec::<String>::new(),
-                complex_functions: Vec::<FunctionMetrics>::new(),
-                project_coverage: 91.56
-        };
-
-        assert!(to_compare == expected);
-        fs::remove_file("./data/test_project/to_compare_fun.json").unwrap();
+        Ok(())
     }
 }

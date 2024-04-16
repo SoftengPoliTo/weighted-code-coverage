@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html class="has-navbar-fixed-top" data-theme="light">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta id="chartData" ignored-files="{{ ignored_files_num }}" not-complex-cyclomatic="{{ not_complex_cyclomatic }}"
+    complex-cyclomatic="{{ complex_cyclomatic }}" not-complex-cognitive="{{ not_complex_cognitive }}"
+    complex-cognitive="{{ complex_cognitive }}" />
+  <title>Weighted Code Coverage</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.0/css/bulma.min.css" />
+  <script src="https://use.fontawesome.com/releases/v6.5.1/js/all.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tippy.js@6/dist/tippy-bundle.umd.js"></script>
+  <style>
+    {% include 'style.css' %}
+  </style>
+</head>
+
+<body>
+  {% include 'navbar.html' %}
+
+  <!-- Successfull analysis -->
+  {% if files|length != 0 %}
+  <div class="columns is-variable m-1 is-1 is-multiline">
+    <div class="column is-full-touch">
+      <div class="columns is-multiline">
+        <!-- Analysis parameters -->
+        <div class="column is-full-mobile">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">Analysis parameters</h5>
+                <span class="icon is-clickable analysis-parameters-files">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Mode</p>
+                <p class="level-right has-text-weight-medium">{{ mode }}</p>
+              </div>
+              <div class="level is-mobile">
+                <p class="level-left has-text-grey">Complexity</p>
+                <p class="cyclomatic level-right has-text-weight-medium">Cyclomatic</p>
+                <p class="cognitive is-hidden level-right has-text-weight-medium">Cognitive</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Thresholds -->
+        <div class="column is-full-mobile">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">Thresholds</h5>
+                <span class="icon is-clickable thresholds">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="columns is-mobile">
+                <div class="column">
+                  <p class="has-text-grey mb-2">Coverage</p>
+                  <p class="has-text-grey mb-2">Wcc</p>
+                  <p class="has-text-grey mb-2">Crap</p>
+                  <p class="has-text-grey">Skunk</p>
+                </div>
+                <div class="column is-narrow">
+                  <p class="has-text-weight-medium mb-2">&ge;</p>
+                  <p class="has-text-weight-medium mb-2">&ge;</p>
+                  <p class="has-text-weight-medium mb-2">&le;</p>
+                  <p class="has-text-weight-medium">&le;</p>
+                </div>
+                <div class="column is-narrow has-text-right has-text-weight-medium pr-0">
+                  <p class="mb-2">60.0</p>
+                  <p class="mb-2">{{ thresholds.wcc }}</p>
+                  <p class="cyclomatic mb-2">{{ thresholds.crapCyclomatic }}</p>
+                  <p class="cognitive is-hidden mb-2">{{ thresholds.crapCognitive }}</p>
+                  <p class="cyclomatic mb-2">{{ thresholds.skunkCyclomatic }}</p>
+                  <p class="cognitive is-hidden mb-2">{{ thresholds.skunkCognitive }}</p>
+                </div>
+                <div class="column is-narrow pl-1 has-text-weight-medium">
+                  <p class="mb-2">&percnt;</p>
+                  <p class="mb-2">&percnt;</p>
+                  <p class="mb-2"></p>
+                  <p class="mb-2"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Coverage -->
+        <div class="column is-full-touch">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block pb-2">Coverage</h5>
+                <span class="icon is-clickable coverage-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Overall</p>
+                </div>
+                <div class="column card-row">
+                  <div class="progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.total.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.total.coverage }}" max="100">
+                      {{ project.total.coverage }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.total.coverage }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Min</p>
+                </div>
+                <div class="column card-row">
+                  <div class="progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.min.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.min.coverage }}" max="100">
+                      {{ project.min.coverage }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.min.coverage }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Max</p>
+                </div>
+                <div class="column card-row">
+                  <div class="progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.max.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.max.coverage }}" max="100">
+                      {{ project.max.coverage }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.max.coverage }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Average</p>
+                </div>
+                <div class="column card-row">
+                  <div class="progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.average.coverage < 60 %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.average.coverage }}" max="100">
+                      {{ project.average.coverage }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.average.coverage }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="columns">
+        <!-- Wcc -->
+        <div class="column">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block pb-2">Wcc</h5>
+                <span class="icon is-clickable wcc-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Overall</p>
+                </div>
+                <div class="column card-row">
+                  <div class="cyclomatic progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.total.cyclomatic.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.total.cyclomatic.wcc }}" max="100">
+                      {{ project.total.cyclomatic.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.total.cyclomatic.wcc }}%
+                    </p>
+                  </div>
+                  <div class="cognitive is-hidden progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.total.cognitive.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.total.cognitive.wcc }}" max="100">
+                      {{ project.total.cognitive.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.total.cognitive.wcc }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Min</p>
+                </div>
+                <div class="column card-row">
+                  <div class="cyclomatic progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.min.cyclomatic.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.min.cyclomatic.wcc }}" max="100">
+                      {{ project.min.cyclomatic.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.min.cyclomatic.wcc }}%
+                    </p>
+                  </div>
+                  <div class="cognitive is-hidden progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.min.cognitive.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.min.cognitive.wcc }}" max="100">
+                      {{ project.min.cognitive.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.min.cognitive.wcc }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Max</p>
+                </div>
+                <div class="column card-row">
+                  <div class="cyclomatic progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.max.cyclomatic.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.max.cyclomatic.wcc }}" max="100">
+                      {{ project.max.cyclomatic.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.max.cyclomatic.wcc }}%
+                    </p>
+                  </div>
+                  <div class="cognitive is-hidden progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.max.cognitive.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.max.cognitive.wcc }}" max="100">
+                      {{ project.max.cognitive.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.max.cognitive.wcc }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="columns is-vcentered is-flex-mobile">
+                <div class="column card-row">
+                  <p class="has-text-grey has-text-left">Average</p>
+                </div>
+                <div class="column card-row">
+                  <div class="cyclomatic progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.average.cyclomatic.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.average.cyclomatic.wcc }}" max="100">
+                      {{ project.average.cyclomatic.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.average.cyclomatic.wcc }}%
+                    </p>
+                  </div>
+                  <div class="cognitive is-hidden progress-wrapper">
+                    <progress
+                      class="progress is-medium mb-0 {% if project.average.cognitive.wcc < thresholds.wcc %}is-danger{% else %}is-success{% endif %}"
+                      value="{{ project.average.cognitive.wcc }}" max="100">
+                      {{ project.average.cognitive.wcc }}%
+                    </progress>
+                    <p class="progress-value has-text-grey-dark">
+                      {{ project.average.cognitive.wcc }}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- CRAP -->
+        <div class="column">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block">CRAP</h5>
+                <span class="icon is-clickable crap-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Overall</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.total.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.total.cyclomatic.crap }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.total.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.total.cognitive.crap }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Min</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.min.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.min.cyclomatic.crap }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.min.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.min.cognitive.crap }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Max</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.max.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.max.cyclomatic.crap }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.max.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.max.cognitive.crap }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Average</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.average.cyclomatic.crap > thresholds.crapCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.average.cyclomatic.crap }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.average.cognitive.crap > thresholds.crapCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.average.cognitive.crap }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Skunk -->
+        <div class="column">
+          <div class="card">
+            <div class="card-content">
+              <span class="icon-text is-flex-wrap-nowrap">
+                <h5 class="title is-5 is-inline-block ">Skunk</h5>
+                <span class="icon is-clickable skunk-project">
+                  <i class="fas fa-info-circle"></i>
+                </span>
+              </span>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Overall</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.total.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.total.cyclomatic.skunk }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.total.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.total.cognitive.skunk }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Min</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.min.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.min.cyclomatic.skunk }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.min.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.min.cognitive.skunk }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Max</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.max.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.max.cyclomatic.skunk }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.max.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.max.cognitive.skunk }}</p>
+              </div>
+              <div class="level is-mobile mb-2">
+                <p class="level-left has-text-grey">Average</p>
+                <p
+                  class="cyclomatic level-right has-text-weight-medium {% if project.average.cyclomatic.skunk > thresholds.skunkCyclomatic %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.average.cyclomatic.skunk }}</p>
+                <p
+                  class="cognitive is-hidden level-right has-text-weight-medium {% if project.average.cognitive.skunk > thresholds.skunkCognitive %}has-text-danger{% else %}has-text-success{% endif %}">
+                  {{ project.average.cognitive.skunk }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Files chart -->
+    <div class="column is-full is-one-third-fullhd">
+      <div class="card">
+        <div class="card-content">
+          <span class="icon-text is-flex-wrap-nowrap">
+            <h5 class="title is-5 is-inline-block">Files</h5>
+            <span class="icon is-clickable files">
+              <i class="fas fa-info-circle"></i>
+            </span>
+          </span>
+          <div class="is-flex is-align-items-center is-justify-content-center" style="height: 366px">
+            <canvas id="chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card mx-4 mb-4">
+    <div class="card-content">
+      <div class="table-container">
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th>
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>File</span>
+                  <span class="icon is-clickable file-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Complexity</span>
+                  <span class="icon is-clickable complexity-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Coverage</span>
+                  <span class="icon is-clickable coverage-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Wcc</span>
+                  <span class="icon is-clickable wcc-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered no-wrap">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>CRAP</span>
+                  <span class="icon is-clickable crap-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+              <th class="has-text-centered">
+                <span class="icon-text is-flex-wrap-nowrap">
+                  <span>Skunk</span>
+                  <span class="icon is-clickable skunk-table">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                </span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for file in files %} {% block files_rows %}{% endblock %} {%
+            endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Failed analysis -->
+  <div class="is-flex is-align-items-center is-justify-content-center is-flex-direction-column m-3"
+    style="height: 75vh">
+    <h2 class="title is-2 has-text-centered mb-3">Analysis failed</h2>
+    <h3 class="subtitle is-4 has-text-centered">
+      It was not possible to retrieve profiling and/or coverage information
+      for any of the project files.<br />Make sure to properly run grcov and tests
+      with profiling.
+    </h3>
+  </div>
+
+  {% endif %}
+  <!-- Ignored files modal -->
+  <div id="modal-js-example" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <h4 class="modal-card-title title is-4">Ignored files</h4>
+        <button class="delete" aria-label="close"></button>
+      </header>
+      <section class="modal-card-body">
+        <div class="content">
+          <p>The following files have been ignored and excluded from the analysis because they lack profiling and/or
+            coverage information:</p>
+          <ul>
+            {% for file in ignored_files|sort %}
+            <li class="has-text-weight-medium">{{ file }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+      <footer class="modal-card-foot">
+        <div class="buttons">
+          <button class="button is-success has-text-white">OK</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+</body>
+
+</html>
+
+<script>
+  // Tooltips.
+  {% include 'common_tooltips.js' %}
+  {% include 'base_tooltips.js' %}
+
+  // Ignored files modal handler.
+  document.addEventListener('DOMContentLoaded', () => {
+    function closeModal($el) {
+      $el.classList.remove('is-active');
+    }
+
+    function closeAllModals() {
+      (document.querySelectorAll('.modal') || []).forEach(($modal) => {
+        closeModal($modal);
+      });
+    }
+
+    // Add a click event on various child elements to close the parent modal.
+    (document.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete, .modal-card-foot .button') || []).forEach(($close) => {
+      const $target = $close.closest('.modal');
+
+      $close.addEventListener('click', () => {
+        closeModal($target);
+      });
+    });
+
+    // Add a keyboard event to close all modals.
+    document.addEventListener('keydown', (event) => {
+      if (event.key === "Escape") {
+        closeAllModals();
+      }
+    });
+  });
+
+  // Chart data passed with minijinja.
+  const chartData = document.getElementById("chartData");
+  const ignoredFiles = chartData.getAttribute("ignored-files");
+  const notComplexCyclomatic = chartData.getAttribute("not-complex-cyclomatic");
+  const complexCyclomatic = chartData.getAttribute("complex-cyclomatic");
+  const notComplexCognitive = chartData.getAttribute("not-complex-cognitive");
+  const complexCognitive = chartData.getAttribute("complex-cognitive");
+
+  // Chart setup.
+  const data = {
+    labels: ["Not complex", "Complex", "Ignored"],
+    datasets: [
+      {
+        data: [notComplexCyclomatic, complexCyclomatic, ignoredFiles],
+        borderWidth: 4,
+        backgroundColor: ["#50C48C", "#F8446C", "#C5C6C7"],
+      },
+    ],
+  };
+
+  // Chart config.
+  const config = {
+    type: "doughnut",
+    data,
+    options: {
+      borderRadius: 7,
+      aspectRatio: 1.15,
+      cutout: "80%",
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            usePointStyle: true,
+            pointStyle: "rectRounded",
+          },
+        },
+        tooltip: {
+          animation: false,
+          usePointStyle: true,
+          boxPadding: 4,
+          callbacks: {
+            beforeFooter: function (context) {
+              return " ";
+            },
+            footer: function (context) {
+              if (context[0].label == "Ignored") {
+                return "Click to see the ignored files list";
+              }
+            },
+            labelPointStyle: function (context) {
+              return {
+                pointStyle: "rectRounded",
+                rotation: 0,
+              };
+            },
+          },
+        },
+      },
+      onHover: (event, chartElement) => {
+        if (chartElement[0] && data.labels[chartElement[0].index] == "Ignored") {
+          event.native.target.style.cursor = 'pointer';
+        } else {
+          event.native.target.style.cursor = 'default';
+        }
+      },
+    },
+  };
+
+  // Chart render.
+  const ctx = document.getElementById("chart");
+  const chart = new Chart(
+    ctx,
+    config
+  );
+
+  // Chart ignored files click handler.
+  function ignoredHandler(click) {
+    const points = chart.getElementsAtEventForMode(click, 'nearest', { intersect: true }, true);
+    if (points[0]) {
+      const dataset = points[0].datasetIndex;
+      const datapoint = points[0].index;
+      if (data.labels[datapoint] === "Ignored") {
+        document.getElementById("modal-js-example").classList.add('is-active');
+      }
+    }
+  }
+  ctx.onclick = ignoredHandler;
+
+  {% include 'complexity.js' %}
+</script>

@@ -1,0 +1,32 @@
+<!-- Navbar -->
+<nav class="navbar is-fixed-top is-dark" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand ml-1">
+        <a class="navbar-item is-size-5 has-text-weight-bold" href="{{ navbar_brand_href|default('') }}">Weighted Code Coverage
+        </a>
+
+        <!-- Navbar burger -->
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarDropdown">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+    </div>
+
+    <!-- Navbar dropdown -->
+    <div id="navbarDropdown" class="navbar-menu">
+        <div class="navbar-start">
+            <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link has-text-white">Complexity</a>
+
+                <div class="navbar-dropdown">
+                    <a class="navbar-item navbar-item-cyclomatic" onclick="cyclomatic()">
+                        Cyclomatic
+                    </a>
+                    <a class="navbar-item navbar-item-cognitive" onclick="cognitive()">
+                        Cognitive
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
