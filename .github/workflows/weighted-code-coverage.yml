@@ -196,8 +196,11 @@ jobs:
         grcov . --binary-path ./target/debug/ --ignore "**/.cargo/**" --ignore "**/rustc/**" --ignore "./target/**" -t coveralls -s . --token YOUR_COVERALLS_TOKEN > coveralls.json
 
     - name: Run weighted-code-coverage
+      id: wcc-run
       run: |
         mkdir $HOME/wcc-output
+        echo "html=$HOME/wcc-output" >> $GITHUB_OUTPUT
+        echo "json=$HOME/wcc-output/wcc.json" >> $GITHUB_OUTPUT
         weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json $HOME/wcc-output/wcc.json --html $HOME/wcc-output/
 
     - name: Setup GitHub Pages
@@ -208,7 +211,7 @@ jobs:
     - name: Upload Wcc html output
       uses: actions/upload-pages-artifact@v3.0.1
       with:
-        path: $HOME/wcc-output
+        path: ${{ steps.wcc-run.outputs.html }}
 
     - name: Deploy to GitHub Pages
       id: deployment
@@ -217,7 +220,7 @@ jobs:
     - name: Extract metric values
       id: metrics
       env:
-        JSON: $HOME/wcc-output/wcc.json
+        JSON: ${{ steps.wcc-run.outputs.json }}
       run: |
         content=`cat ${JSON}`
         echo "json=$content" >> $GITHUB_OUTPUT
