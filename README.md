@@ -201,7 +201,6 @@ weighted-code-coverage --project-path <PROJECT_PATH> --grcov-format <GRCOV_FORMA
 
 ## Steps to install and run weighted-code-coverage
 
-- grcov needs a rust nightly version in order to work, so switch to it with: ``rustup default nightly``
 - Install grcov latest version using cargo ``cargo install grcov``
 - After grcov has been installed, install `llvm-tools component`:
 
