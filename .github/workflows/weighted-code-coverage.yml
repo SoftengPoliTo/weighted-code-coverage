@@ -267,7 +267,7 @@ jobs:
 
     - name: Verify if badge changed
       if: github.event_name != 'pull_request'
-      uses: tj-actions/verify-changed-files@v19
+      uses: tj-actions/verify-changed-files@v20
       id: badge-changed 
       with:
         files: ${{ steps.badge-path.outputs.path }}
