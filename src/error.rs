@@ -10,32 +10,18 @@ pub enum Error {
     WrongFile(#[from] std::io::Error),
     #[error("Error while stripping the prefix")]
     StripPrefix(#[from] StripPrefixError),
-    #[error("Error while parsing function space name")]
-    FuncSpaceName,
     #[error("Error while reading json")]
     WrongJSONFile(#[from] serde_json::Error),
     #[error("Error while converting JSON value to a type")]
     Conversion,
-    #[error("Error while getting value from hashmap")]
-    HashMap,
-    #[error("Failing reading JSON from string")]
-    ReadingJSON,
     #[error("Error while computing Metrics")]
     Metrics,
     #[error("Error while guessing language")]
     Language,
-    #[error("Error while writing on csv")]
-    Writing(#[from] csv::Error),
     #[error("Error during concurrency")]
     Concurrent,
-    #[error("Json Type is not supported! Only coveralls and covdir are supported.")]
-    Type,
-    #[error("Error while converting path to string")]
-    PathConversion,
     #[error("{0}")]
     OutputPath(&'static str),
-    #[error("Error while converting &Option<T> to &T")]
-    OptionRefConversion,
     #[error("Error while locking mutex")]
     Mutex,
     #[error("Error while sending job via sender")]
