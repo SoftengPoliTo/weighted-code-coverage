@@ -88,7 +88,8 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
         .thresholds(args.thresholds)
         .n_threads(args.threads)
         .mode(args.mode)
-        .sort_by(args.sort);
+        .sort_by(args.sort)
+        .json_path(&args.json);
 
     // If present, set the path of the html output directory.
     if let Some(html_path) = &args.html {
@@ -102,7 +103,5 @@ pub(crate) fn run_weighted_code_coverage(args: Args) {
     };
 
     // Run WccRunner.
-    wcc_runner
-        .run(&args.project_path, grcov_file, &args.json)
-        .unwrap();
+    wcc_runner.run(&args.project_path, grcov_file).unwrap();
 }
