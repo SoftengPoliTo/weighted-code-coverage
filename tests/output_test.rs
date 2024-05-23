@@ -50,12 +50,9 @@ fn compare(grcov_file: GrcovFile<&Path>, mode: Mode, snapshot_name: &str) {
 
     let output = WccRunner::new()
         .mode(mode)
+        .json_path(&output_dir.join(JSON_OUTPUT))
         .html_path(&output_dir)
-        .run(
-            Path::new(PROJECT_PATH),
-            grcov_file,
-            &output_dir.join(JSON_OUTPUT),
-        )
+        .run(Path::new(PROJECT_PATH), grcov_file)
         .unwrap();
 
     insta::with_settings!({

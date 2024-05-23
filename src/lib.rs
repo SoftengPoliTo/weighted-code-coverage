@@ -42,6 +42,7 @@ struct Parameters<'a> {
     mode: Mode,
     thresholds: MetricsThresholds,
     sort_by: Sort,
+    json_path: Option<&'a Path>,
     html_path: Option<&'a Path>,
 }
 
@@ -52,6 +53,7 @@ impl Default for Parameters<'_> {
             n_threads: (rayon::current_num_threads() - 1).max(1),
             mode: Mode::default(),
             sort_by: Sort::default(),
+            json_path: Option::default(),
             html_path: Option::default(),
         }
     }
@@ -98,6 +100,12 @@ impl<'a> WccRunner<'a> {
         self
     }
 
+    /// Sets the path of the json output.
+    pub fn json_path(mut self, json_path: &'a Path) -> Self {
+        self.0.json_path = Some(json_path);
+        self
+    }
+
     /// Sets the path of the html output.
     pub fn html_path(mut self, html_path: &'a Path) -> Self {
         self.0.html_path = Some(html_path);
@@ -109,14 +117,12 @@ impl<'a> WccRunner<'a> {
         self,
         project_path: &Path,
         grcov_file: GrcovFile<P>,
-        json_path: &Path,
     ) -> Result<WccOutput> {
         // Check if json_path is a json file.
-        if json_path
-            .extension()
-            .map(|ext| ext.to_ascii_lowercase())
-            .map_or(true, |ext| ext != "json")
-        {
+        if self.0.json_path.map_or(false, |path| {
+            path.extension()
+                .map_or(false, |ext| ext.to_ascii_lowercase() != "json")
+        }) {
             return Err(Error::OutputPath("Json output path must be a json file"));
         }
 
@@ -145,7 +151,7 @@ impl<'a> WccRunner<'a> {
         .run(self.0.n_threads)?;
 
         // Write json and/or html output.
-        self.print(&wcc_output, project_path, json_path)?;
+        self.print(&wcc_output, project_path)?;
 
         Ok(wcc_output)
     }
@@ -167,15 +173,17 @@ impl<'a> WccRunner<'a> {
         Ok(grcov)
     }
 
-    fn print(&self, wcc_output: &WccOutput, project_path: &Path, json_path: &Path) -> Result<()> {
-        JsonPrinter {
-            project_path,
-            wcc_output,
-            output_path: json_path,
-            mode: self.0.mode,
-            thresholds: self.0.thresholds,
+    fn print(&self, wcc_output: &WccOutput, project_path: &Path) -> Result<()> {
+        if let Some(json_path) = self.0.json_path {
+            JsonPrinter {
+                project_path,
+                wcc_output,
+                output_path: json_path,
+                mode: self.0.mode,
+                thresholds: self.0.thresholds,
+            }
+            .print()?;
         }
-        .print()?;
 
         if let Some(html_path) = self.0.html_path {
             HtmlPrinter {
