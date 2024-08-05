@@ -360,7 +360,7 @@ jobs:
 
     - name: Detect multiple versions of the same crate
       if: steps.changes.outputs.cargo == 'true'
-      uses: EmbarkStudios/cargo-deny-action@v1
+      uses: EmbarkStudios/cargo-deny-action@v2
       with:
         command: check bans
 
