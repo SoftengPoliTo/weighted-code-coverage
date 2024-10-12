@@ -313,11 +313,11 @@ jobs:
         comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
         body: |
-          ## Weighted Code Coverage
+          ## [Weighted Code Coverage](https://${{ github.repository_owner }}.github.io/${{ github.repository }}/)
           Project metrics:
           - **Coverage**: ${{ env.COVERAGE }}%
 
-          |             | Wcc                  | CRAP                | Sknk                 |
+          |             | Wcc                  | CRAP                | Skunk                |
           |-------------|----------------------|---------------------|----------------------|
           | Cyclomatic  | ${{ env.WCC_CYC }}%  | ${{ env.CRAP_CYC }} | ${{ env.SKUNK_CYC }} |
           | Cognitive   | ${{ env.WCC_COG }}%  | ${{ env.CRAP_COG }} | ${{ env.SKUNK_COG }} |
