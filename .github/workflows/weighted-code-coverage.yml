@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - pr-comment
     paths:
       - "src/**"
       - "tests/**"
@@ -318,7 +317,7 @@ jobs:
           Project metrics:
           - **Coverage**: ${{ env.COVERAGE }}%
 
-          |             | Wcc                  | CRAP                | Skunk                |
+          |             | Wcc                  | CRAP                | Sknk                 |
           |-------------|----------------------|---------------------|----------------------|
           | Cyclomatic  | ${{ env.WCC_CYC }}%  | ${{ env.CRAP_CYC }} | ${{ env.SKUNK_CYC }} |
           | Cognitive   | ${{ env.WCC_COG }}%  | ${{ env.CRAP_COG }} | ${{ env.SKUNK_COG }} |
