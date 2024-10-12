@@ -33,7 +33,7 @@ env:
 
   UDEPS_VERSION: "0.1.35"
 
-  CAREFUL_VERSION: "0.3.4"
+  CAREFUL_VERSION: "0.4.3"
 
 
 jobs:
@@ -204,26 +204,86 @@ jobs:
         weighted-code-coverage --project-path ./ --grcov-format coveralls --grcov-path ./coveralls.json -m functions --json $HOME/wcc-output/wcc.json --html $HOME/wcc-output/
 
     - name: Setup GitHub Pages
+      if: github.event_name != 'pull_request'
       uses: actions/configure-pages@v5.0.0
       with:
         enablement: true
 
-    - name: Upload Wcc html output
+    - name: Upload Wcc HTML output
+      if: github.event_name != 'pull_request'
       uses: actions/upload-pages-artifact@v3.0.1
       with:
         path: ${{ steps.wcc-run.outputs.html }}
 
     - name: Deploy to GitHub Pages
+      if: github.event_name != 'pull_request'
       id: deployment
       uses: actions/deploy-pages@v4.0.5
 
+    - name: Set up Python
+      if: github.event_name == 'pull_request'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '>=3.7'
+
+    - name: Install smokeshow
+      if: github.event_name == 'pull_request'
+      run: pip install smokeshow
+
+    - name: Deploy to smokeshow
+      id: deploy_site
+      if: github.event_name == 'pull_request'
+      env:
+        SMOKESHOW_AUTH_KEY: ${{ secrets.SMOKESHOW_AUTH_KEY }}
+      run: |
+        # Upload to Smokeshow and extract the URL of the generated site matching 'https://smokeshow.helpmanual.io/<random_string>' from the output
+        url=$(smokeshow upload $HOME/wcc-output | grep -m 1 -o 'https://smokeshow.helpmanual.io/[^"]*')
+        echo "url=$url" >> $GITHUB_OUTPUT
+      shell: bash
+
     - name: Extract metric values
+      if: github.event_name == 'pull_request'
       id: metrics
       env:
         JSON: ${{ steps.wcc-run.outputs.json }}
       run: |
         content=`cat ${JSON}`
         echo "json=$content" >> $GITHUB_OUTPUT
+
+    # Search for an existing comment containing 'Weighted Code Coverage'; if found, it will later be updated with new metric values, otherwise a new comment will be created
+    - name: Find comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/find-comment@v3
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Weighted Code Coverage
+
+    - name: Create or update comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/create-or-update-comment@v4
+      env:
+        COVERAGE: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.coverage }}
+        WCC_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}
+        WCC_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.wcc }}
+        CRAP_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.crap }}
+        CRAP_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.crap }}
+        SKUNK_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.skunk }}
+        SKUNK_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.skunk }}
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ## [Weighted Code Coverage](${{ steps.deploy_site.outputs.url }})
+          Project metrics:
+          - **Coverage**: ${{ env.COVERAGE }}%
+
+          |             | Wcc                  | CRAP                | Skunk                |
+          |-------------|----------------------|---------------------|----------------------|
+          | Cyclomatic  | ${{ env.WCC_CYC }}%  | ${{ env.CRAP_CYC }} | ${{ env.SKUNK_CYC }} |
+          | Cognitive   | ${{ env.WCC_COG }}%  | ${{ env.CRAP_COG }} | ${{ env.SKUNK_COG }} |
+        edit-mode: replace
 
     - name: Extract branch name
       id: extract-branch
@@ -236,7 +296,7 @@ jobs:
       env:
         BADGE_PATH: .github/badges/wcc.svg
       run: echo "path=${BADGE_PATH}" >> "${GITHUB_OUTPUT}"
-      
+
     - name: Create badge directory
       if: github.event_name != 'pull_request'
       env:
@@ -271,7 +331,7 @@ jobs:
       id: badge-changed 
       with:
         files: ${{ steps.badge-path.outputs.path }}
-      
+
     - name: Commit badge
       if: ${{ github.event_name != 'pull_request' && steps.badge-changed.outputs.files_changed == 'true' }}
       env:
@@ -288,31 +348,6 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ steps.extract-branch.outputs.branch }}
-
-    - name: Create or update comment
-      if: github.event_name == 'pull_request'
-      uses: peter-evans/create-or-update-comment@v4
-      env:
-        COVERAGE: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.coverage }}
-        WCC_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.wcc }}
-        WCC_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.wcc }}
-        CRAP_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.crap }}
-        CRAP_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.crap }}
-        SKUNK_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.skunk }}
-        SKUNK_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.skunk }}
-      with:
-        comment-id: ${{ github.event.comment.id }}
-        issue-number: ${{ github.event.pull_request.number }}
-        body: |
-          ## Weighted Code Coverage
-          Project metrics:
-          - **Coverage**: ${{ env.COVERAGE }}%
-
-          |             | Wcc                  | CRAP                | Skunk                |
-          |-------------|----------------------|---------------------|----------------------|
-          | Cyclomatic  | ${{ env.WCC_CYC }}%  | ${{ env.CRAP_CYC }} | ${{ env.SKUNK_CYC }} |
-          | Cognitive   | ${{ env.WCC_COG }}%  | ${{ env.CRAP_COG }} | ${{ env.SKUNK_COG }} |
-        edit-mode: replace
 
 ################################## DEPENDENCY LAYER ###########################
 
