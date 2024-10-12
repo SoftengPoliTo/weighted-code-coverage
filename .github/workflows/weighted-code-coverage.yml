@@ -289,6 +289,15 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         branch: ${{ steps.extract-branch.outputs.branch }}
 
+    - name: Find comment
+      if: github.event_name == 'pull_request'
+      uses: peter-evans/find-comment@v3
+      id: fc
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: Weighted Code Coverage
+
     - name: Create or update comment
       if: github.event_name == 'pull_request'
       uses: peter-evans/create-or-update-comment@v4
@@ -301,7 +310,7 @@ jobs:
         SKUNK_CYC: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cyclomatic.skunk }}
         SKUNK_COG: ${{ fromJson(steps.metrics.outputs.json).projectMetrics.total.cognitive.skunk }}
       with:
-        comment-id: ${{ github.event.comment.id }}
+        comment-id: ${{ steps.fc.outputs.comment-id }}
         issue-number: ${{ github.event.pull_request.number }}
         body: |
           ## Weighted Code Coverage
