@@ -211,7 +211,7 @@ jobs:
 
     - name: Upload Wcc HTML output
       if: github.event_name != 'pull_request'
-      uses: actions/upload-pages-artifact@v3.0.1
+      uses: actions/upload-pages-artifact@v4.0.0
       with:
         path: ${{ steps.wcc-run.outputs.html }}
 
